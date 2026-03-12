@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BoredLabs</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="grain"></div>
+
+    <header class="topbar">
+      <button id="adminBtn" class="pill ghost" type="button">Admin Panel</button>
+      <div class="brand">
+        <div class="logo">BL</div>
+        <div>
+          <p class="eyebrow">BoredLabs</p>
+          <h1>Discover Your Next Hobby</h1>
+        </div>
+      </div>
+      <button id="menuBtn" class="icon-btn" type="button" aria-label="Open menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </header>
+
+    <main>
+      <section class="hero" id="hero">
+        <div class="hero-copy">
+          <p class="kicker">Blueprints that feel like the App Store for hobbies.</p>
+          <h2>Pick a blueprint, gather materials, and build a new skill today.</h2>
+          <p class="sub">Browse curated hobbies with ratings, difficulty, and cost insights. Request new blueprints and watch them land live.</p>
+          <div class="hero-actions">
+            <button id="getStartedBtn" class="pill primary" type="button">Get Started</button>
+            <button id="howToBtn" class="pill" type="button">How to Get Started</button>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-top">
+            <h3>Featured Blueprint</h3>
+            <p>Origami Desk Garden</p>
+          </div>
+          <div class="hero-metrics">
+            <div>
+              <span class="label">Rating</span>
+              <div class="stars">
+                <span class="star filled">?</span>
+                <span class="star filled">?</span>
+                <span class="star filled">?</span>
+                <span class="star filled">?</span>
+                <span class="star">?</span>
+              </div>
+            </div>
+            <div>
+              <span class="label">Difficulty</span>
+              <div class="stars red">
+                <span class="star filled">?</span>
+                <span class="star filled">?</span>
+                <span class="star">?</span>
+                <span class="star">?</span>
+                <span class="star">?</span>
+              </div>
+            </div>
+            <div>
+              <span class="label">Cost</span>
+              <div class="stars green">
+                <span class="star filled">?</span>
+                <span class="star filled">?</span>
+                <span class="star">?</span>
+                <span class="star">?</span>
+                <span class="star">?</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="blueprints" id="blueprints">
+        <div class="section-head">
+          <div>
+            <h2>Blueprint Library</h2>
+            <p class="muted">Tap any blueprint to view details, materials, and steps.</p>
+          </div>
+          <div class="filters">
+            <button id="showAllBtn" class="pill ghost" type="button">All</button>
+            <button id="bestRatedBtn" class="pill ghost" type="button">Best Rated</button>
+          </div>
+        </div>
+        <div id="blueprintGrid" class="grid"></div>
+      </section>
+    </main>
+
+    <aside id="sidePanel" class="side-panel" aria-hidden="true">
+      <div class="side-panel-header">
+        <h3>Explore</h3>
+        <button id="closePanelBtn" class="icon-btn" type="button" aria-label="Close menu">?</button>
+      </div>
+      <div class="side-panel-body">
+        <button id="sideBestRated" class="panel-link" type="button">Best Rated</button>
+        <button id="sideRequest" class="panel-link" type="button">Request Blueprints</button>
+        <button id="sideHowTo" class="panel-link" type="button">How to Get Started</button>
+      </div>
+    </aside>
+
+    <section id="requestPanel" class="drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <h3>Request a Blueprint</h3>
+          <p class="muted">Your request lands instantly in the admin queue.</p>
+        </div>
+        <button id="closeRequestBtn" class="icon-btn" type="button" aria-label="Close request panel">?</button>
+      </div>
+      <form id="requestForm" class="form">
+        <label>
+          Blueprint Title
+          <input name="title" type="text" required />
+        </label>
+        <label>
+          Description
+          <textarea name="description" rows="3" required></textarea>
+        </label>
+        <label>
+          Photos (up to 3)
+          <input name="photos" type="file" accept="image/*" multiple />
+        </label>
+        <label>
+          Materials
+          <textarea name="materials" rows="3" required></textarea>
+        </label>
+        <label>
+          Steps
+          <textarea name="steps" rows="4" required></textarea>
+        </label>
+        <button class="pill primary" type="submit">Submit Request</button>
+        <p class="muted small">Profanity is filtered automatically, including leetspeak.</p>
+      </form>
+    </section>
+
+    <section id="howToPanel" class="drawer" aria-hidden="true">
+      <div class="drawer-header">
+        <div>
+          <h3>How to Get Started</h3>
+          <p class="muted">Blueprints always follow this simple format.</p>
+        </div>
+        <button id="closeHowToBtn" class="icon-btn" type="button" aria-label="Close how to panel">?</button>
+      </div>
+      <div class="howto">
+        <div>
+          <h4>Materials</h4>
+          <p class="muted">A short list of what you need before you begin.</p>
+        </div>
+        <div>
+          <h4>Steps</h4>
+          <p class="muted">Clear, numbered actions to complete the hobby.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="detailModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <button id="closeDetailBtn" class="icon-btn" type="button" aria-label="Close detail">?</button>
+        <div id="detailContent"></div>
+      </div>
+    </section>
+
+    <section id="adminModal" class="modal" aria-hidden="true">
+      <div class="modal-content admin">
+        <button id="closeAdminBtn" class="icon-btn" type="button" aria-label="Close admin">?</button>
+        <div id="adminContent"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>Contact: jdingle@atomicmail.io</p>
+      <p class="muted">BoredLabs on GitHub Pages</p>
+    </footer>
+
+    <script type="module" src="main.js"></script>
+    <script type="module" src="requests.js"></script>
+    <script type="module" src="admin.js"></script>
+  </body>
+</html>
