@@ -5,7 +5,9 @@ import {
   addDoc,
   doc,
   getDoc,
+  setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -18,8 +20,8 @@ import {
 import { sanitizeText, sanitizeMultiline, hasProfanity, showToast, compressImages } from "./utils.js";
 
 const ADMIN_PASSWORD = "t@jding43";
+const ADMIN_FLAG = "bl_admin";
 
-const adminModal = document.getElementById("adminModal");
 const adminContent = document.getElementById("adminContent");
 
 const uploadImages = async (blobs, folder) => {
@@ -34,29 +36,17 @@ const uploadImages = async (blobs, folder) => {
   return urls;
 };
 
-const openAdmin = () => {
-  if (!adminModal || !adminContent) return;
-  adminModal.classList.add("open");
-  adminModal.setAttribute("aria-hidden", "false");
-  renderLogin();
-};
-
-const closeAdmin = () => {
-  if (!adminModal) return;
-  adminModal.classList.remove("open");
-  adminModal.setAttribute("aria-hidden", "true");
-};
-
 const renderLogin = () => {
+  if (!adminContent) return;
   adminContent.innerHTML = `
     <div class="admin-grid">
       <div>
-        <h2>Admin Panel</h2>
-        <p class="muted">Enter the password to review and publish blueprint requests.</p>
+        <h2>Dev Options</h2>
+        <p class="muted">Enter the code once to unlock admin controls.</p>
       </div>
       <div class="admin-card">
         <label>
-          Password
+          Access Code
           <input id="adminPassword" type="password" />
         </label>
         <button id="adminLogin" class="pill primary" type="button">Unlock</button>
@@ -67,19 +57,28 @@ const renderLogin = () => {
   document.getElementById("adminLogin")?.addEventListener("click", () => {
     const value = document.getElementById("adminPassword")?.value || "";
     if (value === ADMIN_PASSWORD) {
+      localStorage.setItem(ADMIN_FLAG, "true");
       renderAdmin();
     } else {
-      showToast("Incorrect password.");
+      showToast("Incorrect code.");
     }
   });
 };
 
 const renderAdmin = () => {
+  if (!adminContent) return;
   adminContent.innerHTML = `
     <div class="admin-grid">
       <div>
-        <h2>Admin Panel</h2>
-        <p class="muted">Approve requests or publish new blueprints directly.</p>
+        <h2>Dev Options</h2>
+        <p class="muted">Manage requests, publish new blueprints, and edit live content.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button class="pill" data-scroll="pending">Requests</button>
+        <button class="pill" data-scroll="upload">Upload Blueprint</button>
+        <button class="pill" data-scroll="live">Edit Blueprints</button>
+        <button class="pill" data-scroll="live">Delete Blueprints</button>
       </div>
 
       <div class="admin-card" id="pendingRequests">
@@ -87,15 +86,15 @@ const renderAdmin = () => {
         <div class="muted">Loading requests...</div>
       </div>
 
-      <div class="admin-card">
-        <h3>Manual Blueprint Upload</h3>
-        <form id="adminAddForm" class="form">
+      <div class="admin-card" id="uploadSection">
+        <h3>Upload Blueprint</h3>
+        <form id="adminAddForm" class="form compact">
           <label>
-            Title
+            Title <span class="req">*</span>
             <input name="title" type="text" required />
           </label>
           <label>
-            Description
+            Description <span class="req">*</span>
             <textarea name="description" rows="3" required></textarea>
           </label>
           <label>
@@ -107,19 +106,23 @@ const renderAdmin = () => {
             <input name="photos" type="file" accept="image/*" multiple />
           </label>
           <label>
-            Materials
+            Materials <span class="req">*</span>
             <textarea name="materials" rows="3" required></textarea>
           </label>
           <label>
-            Steps
+            Steps <span class="req">*</span>
             <textarea name="steps" rows="4" required></textarea>
           </label>
           <label>
-            Difficulty (1-5)
+            Video URL (optional)
+            <input name="videoUrl" type="url" placeholder="https://" />
+          </label>
+          <label>
+            Difficulty (1-5) <span class="req">*</span>
             <input name="difficulty" type="number" min="1" max="5" required />
           </label>
           <label>
-            Cost (1-5)
+            Cost (1-5) <span class="req">*</span>
             <input name="cost" type="number" min="1" max="5" required />
           </label>
           <button class="pill primary" type="submit">Publish Blueprint</button>
@@ -140,17 +143,21 @@ const renderAdmin = () => {
 
 const bindAdminEvents = () => {
   document.getElementById("adminAddForm")?.addEventListener("submit", handleManualAdd);
+  document.querySelectorAll("[data-scroll]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const target = event.currentTarget.getAttribute("data-scroll");
+      if (target === "pending") document.getElementById("pendingRequests")?.scrollIntoView({ behavior: "smooth" });
+      if (target === "upload") document.getElementById("uploadSection")?.scrollIntoView({ behavior: "smooth" });
+      if (target === "live") document.getElementById("liveBlueprints")?.scrollIntoView({ behavior: "smooth" });
+    });
+  });
 };
 
 const listenRequests = () => {
   const container = document.getElementById("pendingRequests");
   if (!container) return;
 
-  const q = query(
-    collection(db, "requests"),
-    where("status", "==", "pending"),
-    orderBy("createdAt", "desc")
-  );
+  const q = query(collection(db, "requests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
 
   onSnapshot(q, (snapshot) => {
     const requests = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
@@ -170,6 +177,7 @@ const listenRequests = () => {
             <div class="list">
               <div><span class="badge">Materials</span> ${req.materials}</div>
               <div><span class="badge">Steps</span> ${sanitizeMultiline(req.steps).replace(/\n/g, "<br />")}</div>
+              ${req.videoUrl ? `<div><span class="badge">Video</span> ${req.videoUrl}</div>` : ""}
             </div>
             <div class="list">
               <label>
@@ -219,26 +227,53 @@ const listenBlueprints = () => {
       ${blueprints
         .map(
           (bp) => `
-          <div class="admin-card">
+          <div class="admin-card" data-blueprint="${bp.id}">
             <strong>${bp.title}</strong>
-            <p class="muted">${bp.description}</p>
             <div class="detail-photos">
               ${(bp.photos || [])
                 .map((src) => `<img src="${src}" alt="${bp.title}" />`)
                 .join("")}
             </div>
             <div class="list">
-              <div><span class="badge">Materials</span> ${bp.materials}</div>
-              <div><span class="badge">Steps</span> ${sanitizeMultiline(bp.steps).replace(/\n/g, "<br />")}</div>
-              <div><span class="badge">Rating</span> ${bp.ratingSum || 0} / ${bp.ratingCount || 0}</div>
-              <div><span class="badge">Difficulty</span> ${bp.difficulty}</div>
-              <div><span class="badge">Cost</span> ${bp.cost}</div>
+              <label>Title <input type="text" name="title" value="${bp.title}" /></label>
+              <label>Description <textarea name="description" rows="2">${bp.description}</textarea></label>
+              <label>Materials <textarea name="materials" rows="2">${bp.materials || ""}</textarea></label>
+              <label>Steps <textarea name="steps" rows="3">${bp.steps || ""}</textarea></label>
+              <label>Video URL <input type="url" name="videoUrl" value="${bp.videoUrl || ""}" /></label>
+              <label>Difficulty <input type="number" min="1" max="5" name="difficulty" value="${bp.difficulty}" /></label>
+              <label>Cost <input type="number" min="1" max="5" name="cost" value="${bp.cost}" /></label>
+            </div>
+            <div class="admin-actions">
+              <button class="pill primary" data-save="${bp.id}" type="button">Save Edits</button>
+              <button class="pill" data-feature="${bp.id}" type="button">Set Featured</button>
+              <button class="pill" data-delete="${bp.id}" type="button">Delete</button>
             </div>
           </div>
         `
         )
         .join("") || `<div class="muted">No blueprints yet.</div>`}
     `;
+
+    container.querySelectorAll("[data-save]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        const id = event.currentTarget.getAttribute("data-save");
+        handleSave(id);
+      });
+    });
+
+    container.querySelectorAll("[data-delete]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        const id = event.currentTarget.getAttribute("data-delete");
+        handleDelete(id);
+      });
+    });
+
+    container.querySelectorAll("[data-feature]").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        const id = event.currentTarget.getAttribute("data-feature");
+        handleFeature(id);
+      });
+    });
   });
 };
 
@@ -258,6 +293,7 @@ const handleAccept = async (id) => {
     photos: request.photos || [],
     materials: request.materials,
     steps: request.steps,
+    videoUrl: request.videoUrl || "",
     difficulty,
     cost,
     ratingSum: 0,
@@ -283,6 +319,7 @@ const handleManualAdd = async (event) => {
   const description = sanitizeText(String(data.get("description") || ""));
   const materials = sanitizeMultiline(String(data.get("materials") || ""));
   const steps = sanitizeMultiline(String(data.get("steps") || ""));
+  const videoUrl = sanitizeText(String(data.get("videoUrl") || ""));
   const difficulty = Number(data.get("difficulty"));
   const cost = Number(data.get("cost"));
 
@@ -291,10 +328,16 @@ const handleManualAdd = async (event) => {
     .map((url) => url.trim())
     .filter(Boolean);
 
-  const blobs = await compressImages(data.getAll("photos"));
-  const uploadUrls = blobs.length
-    ? await uploadImages(blobs, `blueprints/manual_${crypto.randomUUID()}`)
-    : [];
+  let uploadUrls = [];
+  try {
+    const blobs = await compressImages(data.getAll("photos"));
+    uploadUrls = blobs.length
+      ? await uploadImages(blobs, `blueprints/manual_${crypto.randomUUID()}`)
+      : [];
+  } catch (err) {
+    showToast("Upload failed. Check Firebase Storage rules.");
+    return;
+  }
 
   const photos = [...photoUrls, ...uploadUrls].slice(0, 3);
 
@@ -309,6 +352,7 @@ const handleManualAdd = async (event) => {
     photos,
     materials,
     steps,
+    videoUrl,
     difficulty,
     cost,
     ratingSum: 0,
@@ -320,8 +364,46 @@ const handleManualAdd = async (event) => {
   showToast("Blueprint published.");
 };
 
-document.getElementById("adminBtn")?.addEventListener("click", openAdmin);
-document.getElementById("closeAdminBtn")?.addEventListener("click", closeAdmin);
-adminModal?.addEventListener("click", (event) => {
-  if (event.target === adminModal) closeAdmin();
+const handleSave = async (id) => {
+  const card = document.querySelector(`[data-blueprint="${id}"]`);
+  if (!card) return;
+
+  const payload = {
+    title: sanitizeText(card.querySelector("[name=title]")?.value || ""),
+    description: sanitizeText(card.querySelector("[name=description]")?.value || ""),
+    materials: sanitizeMultiline(card.querySelector("[name=materials]")?.value || ""),
+    steps: sanitizeMultiline(card.querySelector("[name=steps]")?.value || ""),
+    videoUrl: sanitizeText(card.querySelector("[name=videoUrl]")?.value || ""),
+    difficulty: Number(card.querySelector("[name=difficulty]")?.value || 1),
+    cost: Number(card.querySelector("[name=cost]")?.value || 1)
+  };
+
+  if (hasProfanity(`${payload.title} ${payload.description} ${payload.materials} ${payload.steps}`)) {
+    showToast("Please remove profanity before saving.");
+    return;
+  }
+
+  await updateDoc(doc(db, "blueprints", id), payload);
+  showToast("Blueprint updated.");
+};
+
+const handleDelete = async (id) => {
+  if (!id) return;
+  if (!confirm("Delete this blueprint? This cannot be undone.")) return;
+  await deleteDoc(doc(db, "blueprints", id));
+  showToast("Blueprint deleted.");
+};
+
+const handleFeature = async (id) => {
+  await setDoc(doc(db, "settings", "site"), { featuredId: id }, { merge: true });
+  showToast("Featured blueprint updated.");
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  const unlocked = localStorage.getItem(ADMIN_FLAG) === "true";
+  if (unlocked) {
+    renderAdmin();
+  } else {
+    renderLogin();
+  }
 });

@@ -34,8 +34,9 @@ if (form) {
     const materials = sanitizeMultiline(String(data.get("materials") || ""));
     const steps = sanitizeMultiline(String(data.get("steps") || ""));
     const files = data.getAll("photos");
+    const videoUrl = sanitizeText(String(data.get("videoUrl") || ""));
 
-    const textBlock = `${title} ${description} ${materials} ${steps}`;
+    const textBlock = `${title} ${description} ${materials} ${steps} ${videoUrl}`;
     if (hasProfanity(textBlock)) {
       showToast("Please remove profanity before submitting.");
       return;
@@ -47,14 +48,21 @@ if (form) {
       materials,
       steps,
       photos: [],
+      videoUrl,
       status: "pending",
       createdAt: serverTimestamp()
     });
 
-    const blobs = await compressImages(files);
-    const photos = blobs.length
-      ? await uploadImages(blobs, `requests/${docRef.id}`)
-      : [];
+    let photos = [];
+    try {
+      const blobs = await compressImages(files);
+      photos = blobs.length
+        ? await uploadImages(blobs, `requests/${docRef.id}`)
+        : [];
+    } catch (err) {
+      showToast("Upload failed. Check Firebase Storage rules.");
+      return;
+    }
 
     if (photos.length) {
       await updateDoc(doc(db, "requests", docRef.id), { photos });

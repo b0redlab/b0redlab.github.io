@@ -9,13 +9,14 @@ import {
   runTransaction,
   serverTimestamp
 } from "./firebase.js";
-import { sanitizeText, sanitizeMultiline, getUserId, showToast } from "./utils.js";
+import { sanitizeMultiline, getUserId, showToast } from "./utils.js";
 
 const state = {
   filter: "all",
   blueprintCache: [],
   openRating: false,
-  currentDetailId: null
+  currentDetailId: null,
+  featuredId: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -30,8 +31,38 @@ const starsMarkup = (value, colorClass) => {
   return `
     <div class="stars ${colorClass || ""}">
       ${[1, 2, 3, 4, 5]
-        .map((i) => `<span class="star ${i <= filled ? "filled" : ""}">?</span>`)
+        .map((i) => `<span class="star ${i <= filled ? "filled" : ""}">&#9733;</span>`)
         .join("")}
+    </div>
+  `;
+};
+
+const renderFeatured = () => {
+  const titleEl = $("featuredTitle");
+  const metaEl = $("featuredMeta");
+  if (!titleEl || !metaEl) return;
+
+  const featured = state.blueprintCache.find((bp) => bp.id === state.featuredId) || state.blueprintCache[0];
+  if (!featured) {
+    titleEl.textContent = "No blueprints yet";
+    metaEl.innerHTML = "";
+    return;
+  }
+
+  titleEl.textContent = featured.title;
+  const avg = ratingAverage(featured);
+  metaEl.innerHTML = `
+    <div>
+      <span class="label">Rating</span>
+      ${starsMarkup(avg)}
+    </div>
+    <div>
+      <span class="label">Difficulty</span>
+      ${starsMarkup(featured.difficulty, "red")}
+    </div>
+    <div>
+      <span class="label">Cost</span>
+      ${starsMarkup(featured.cost, "green")}
     </div>
   `;
 };
@@ -43,8 +74,9 @@ const renderBlueprints = () => {
   let list = [...state.blueprintCache];
   if (state.filter === "best") {
     list.sort((a, b) => ratingAverage(b) - ratingAverage(a));
-    list = list.slice(0, 6);
   }
+
+  list = list.slice(0, 5);
 
   if (!list.length) {
     grid.innerHTML = `<div class="muted">No blueprints yet. Submit a request to get started.</div>`;
@@ -113,7 +145,7 @@ const showDetail = async (id) => {
         <h3>Rate This Blueprint</h3>
         <div class="rating-stars" data-rating-stars>
           ${[1, 2, 3, 4, 5]
-            .map((i) => `<button type="button" data-rate-value="${i}">?</button>`)
+            .map((i) => `<button type="button" data-rate-value="${i}">&#9733;</button>`)
             .join("")}
         </div>
         <p class="badge" data-rating-status>One rating per user.</p>
@@ -126,6 +158,7 @@ const showDetail = async (id) => {
         <h3>Steps</h3>
         <p class="muted">${sanitizeMultiline(bp.steps).replace(/\n/g, "<br />")}</p>
       </div>
+      ${bp.videoUrl ? `<div><h3>Video</h3><a class="pill ghost" href="${bp.videoUrl}" target="_blank" rel="noreferrer">Watch Video</a></div>` : ""}
     </div>
   `;
 
@@ -168,20 +201,6 @@ const closeMenu = () => {
   panel.setAttribute("aria-hidden", "true");
 };
 
-const openDrawer = (id) => {
-  const drawer = $(id);
-  if (!drawer) return;
-  drawer.classList.add("open");
-  drawer.setAttribute("aria-hidden", "false");
-};
-
-const closeDrawer = (id) => {
-  const drawer = $(id);
-  if (!drawer) return;
-  drawer.classList.remove("open");
-  drawer.setAttribute("aria-hidden", "true");
-};
-
 const submitRating = async (id, value) => {
   const userId = getUserId();
   const ratingRef = doc(db, "ratings", `${id}_${userId}`);
@@ -189,38 +208,23 @@ const submitRating = async (id, value) => {
   try {
     await runTransaction(db, async (tx) => {
       const ratingSnap = await tx.get(ratingRef);
-      if (ratingSnap.exists()) {
-        throw new Error("already");
-      }
+      if (ratingSnap.exists()) throw new Error("already");
       const bpRef = doc(db, "blueprints", id);
       const bpSnap = await tx.get(bpRef);
-      if (!bpSnap.exists()) {
-        throw new Error("missing");
-      }
+      if (!bpSnap.exists()) throw new Error("missing");
       const data = bpSnap.data();
       const sum = (data.ratingSum || 0) + value;
       const count = (data.ratingCount || 0) + 1;
       tx.update(bpRef, { ratingSum: sum, ratingCount: count });
-      tx.set(ratingRef, {
-        blueprintId: id,
-        userId,
-        value,
-        createdAt: serverTimestamp()
-      });
+      tx.set(ratingRef, { blueprintId: id, userId, value, createdAt: serverTimestamp() });
     });
 
     showToast("Thanks for rating!");
     const statusEl = document.querySelector("[data-rating-status]");
     if (statusEl) statusEl.textContent = "Rating saved. Thanks!";
-    document
-      .querySelectorAll("[data-rate-value]")
-      .forEach((btn) => (btn.disabled = true));
+    document.querySelectorAll("[data-rate-value]").forEach((btn) => (btn.disabled = true));
   } catch (err) {
-    if (err.message === "already") {
-      showToast("You have already rated this blueprint.");
-    } else {
-      showToast("Rating failed. Please try again.");
-    }
+    showToast(err.message === "already" ? "You have already rated this blueprint." : "Rating failed. Please try again.");
   }
 };
 
@@ -231,9 +235,6 @@ const bindEvents = () => {
     document.getElementById("blueprints")?.scrollIntoView({ behavior: "smooth" });
   });
 
-  $("howToBtn")?.addEventListener("click", () => openDrawer("howToPanel"));
-  $("closeHowToBtn")?.addEventListener("click", () => closeDrawer("howToPanel"));
-
   $("menuBtn")?.addEventListener("click", openMenu);
   $("closePanelBtn")?.addEventListener("click", closeMenu);
 
@@ -243,18 +244,6 @@ const bindEvents = () => {
     closeMenu();
     document.getElementById("blueprints")?.scrollIntoView({ behavior: "smooth" });
   });
-
-  $("sideRequest")?.addEventListener("click", () => {
-    closeMenu();
-    openDrawer("requestPanel");
-  });
-
-  $("sideHowTo")?.addEventListener("click", () => {
-    closeMenu();
-    openDrawer("howToPanel");
-  });
-
-  $("closeRequestBtn")?.addEventListener("click", () => closeDrawer("requestPanel"));
 
   $("showAllBtn")?.addEventListener("click", () => {
     state.filter = "all";
@@ -292,6 +281,36 @@ const bindEvents = () => {
       }
     }
   });
+
+  const accordion = document.querySelector(".accordion");
+  const panel = document.querySelector(".panel");
+  accordion?.addEventListener("click", () => {
+    const open = panel?.classList.toggle("open");
+    accordion.setAttribute("aria-expanded", String(open));
+    panel?.setAttribute("aria-hidden", String(!open));
+  });
+
+  // Secret key sequence to open Dev Options without a visible button.
+  const secret = "boredlabsdev";
+  let buffer = "";
+  document.addEventListener("keydown", (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key.length !== 1) return;
+    buffer = (buffer + event.key.toLowerCase()).slice(-secret.length);
+    if (buffer === secret) {
+      window.location.href = "admin.html";
+      buffer = "";
+    }
+  });
+};
+
+const listenFeatured = async () => {
+  const settingsRef = doc(db, "settings", "site");
+  const settingsSnap = await getDoc(settingsRef);
+  if (settingsSnap.exists()) {
+    state.featuredId = settingsSnap.data().featuredId || null;
+  }
+  renderFeatured();
 };
 
 const listenBlueprints = () => {
@@ -302,10 +321,12 @@ const listenBlueprints = () => {
       ...docSnap.data()
     }));
     renderBlueprints();
+    renderFeatured();
   });
 };
 
 window.addEventListener("DOMContentLoaded", () => {
   listenBlueprints();
+  listenFeatured();
   bindEvents();
 });
