@@ -14,9 +14,7 @@ import { sanitizeMultiline, getUserId, showToast } from "./utils.js";
 const state = {
   filter: "all",
   blueprintCache: [],
-  openRating: false,
-  currentDetailId: null,
-  featuredId: null
+  currentDetailId: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -37,74 +35,40 @@ const starsMarkup = (value, colorClass) => {
   `;
 };
 
-const renderFeatured = () => {
-  const titleEl = $("featuredTitle");
-  const metaEl = $("featuredMeta");
-  if (!titleEl || !metaEl) return;
-
-  const featured = state.blueprintCache.find((bp) => bp.id === state.featuredId) || state.blueprintCache[0];
-  if (!featured) {
-    titleEl.textContent = "No blueprints yet";
-    metaEl.innerHTML = "";
-    return;
-  }
-
-  titleEl.textContent = featured.title;
-  const avg = ratingAverage(featured);
-  metaEl.innerHTML = `
-    <div>
-      <span class="label">Rating</span>
-      ${starsMarkup(avg)}
-    </div>
-    <div>
-      <span class="label">Difficulty</span>
-      ${starsMarkup(featured.difficulty, "red")}
-    </div>
-    <div>
-      <span class="label">Cost</span>
-      ${starsMarkup(featured.cost, "green")}
-    </div>
-  `;
-};
-
-const renderBlueprints = () => {
-  const grid = $("blueprintGrid");
-  if (!grid) return;
+const renderList = () => {
+  const listEl = $("blueprintList");
+  if (!listEl) return;
 
   let list = [...state.blueprintCache];
   if (state.filter === "best") {
     list.sort((a, b) => ratingAverage(b) - ratingAverage(a));
   }
 
-  list = list.slice(0, 5);
-
   if (!list.length) {
-    grid.innerHTML = `<div class="muted">No blueprints yet. Submit a request to get started.</div>`;
+    listEl.innerHTML = `<div class="muted">No blueprints yet. Submit a request to get started.</div>`;
     return;
   }
 
-  grid.innerHTML = list
+  listEl.innerHTML = list
     .map((bp) => {
       const avg = ratingAverage(bp);
       const cover = bp.photos?.[0] || "";
       return `
-        <article class="card">
+        <div class="list-item">
           <img src="${cover}" alt="${bp.title}" />
-          <div>
-            <div class="title">${bp.title}</div>
-            <p class="desc">${bp.description}</p>
+          <div class="meta">
+            <h3>${bp.title}</h3>
+            <p class="muted">${bp.description}</p>
+            <div class="stars-row">
+              ${starsMarkup(avg)}
+              ${starsMarkup(bp.difficulty, "red")}
+              ${starsMarkup(bp.cost, "green")}
+            </div>
           </div>
-          <div class="rating-block">
-            <div>${starsMarkup(avg)}</div>
-            <div class="badge">${avg} rating (${bp.ratingCount || 0})</div>
-            <div>${starsMarkup(bp.difficulty, "red")}</div>
-            <div>${starsMarkup(bp.cost, "green")}</div>
-          </div>
-          <div class="card-actions">
+          <div class="list-actions">
             <button class="pill primary" data-open="${bp.id}" type="button">Get Blueprint</button>
-            <button class="pill ghost" data-rate="${bp.id}" type="button">Rate</button>
           </div>
-        </article>
+        </div>
       `;
     })
     .join("");
@@ -173,11 +137,6 @@ const showDetail = async (id) => {
     statusEl.textContent = "You already rated this blueprint.";
     container.querySelectorAll("[data-rate-value]").forEach((btn) => (btn.disabled = true));
   }
-
-  if (state.openRating) {
-    container.querySelector("[data-rating-ui]")?.scrollIntoView({ behavior: "smooth" });
-    state.openRating = false;
-  }
 };
 
 const closeDetail = () => {
@@ -185,20 +144,6 @@ const closeDetail = () => {
   if (!detail) return;
   detail.classList.remove("open");
   detail.setAttribute("aria-hidden", "true");
-};
-
-const openMenu = () => {
-  const panel = $("sidePanel");
-  if (!panel) return;
-  panel.classList.add("open");
-  panel.setAttribute("aria-hidden", "false");
-};
-
-const closeMenu = () => {
-  const panel = $("sidePanel");
-  if (!panel) return;
-  panel.classList.remove("open");
-  panel.setAttribute("aria-hidden", "true");
 };
 
 const submitRating = async (id, value) => {
@@ -229,30 +174,14 @@ const submitRating = async (id, value) => {
 };
 
 const bindEvents = () => {
-  $("getStartedBtn")?.addEventListener("click", () => {
-    state.filter = "all";
-    renderBlueprints();
-    document.getElementById("blueprints")?.scrollIntoView({ behavior: "smooth" });
-  });
-
-  $("menuBtn")?.addEventListener("click", openMenu);
-  $("closePanelBtn")?.addEventListener("click", closeMenu);
-
-  $("sideBestRated")?.addEventListener("click", () => {
-    state.filter = "best";
-    renderBlueprints();
-    closeMenu();
-    document.getElementById("blueprints")?.scrollIntoView({ behavior: "smooth" });
-  });
-
   $("showAllBtn")?.addEventListener("click", () => {
     state.filter = "all";
-    renderBlueprints();
+    renderList();
   });
 
   $("bestRatedBtn")?.addEventListener("click", () => {
     state.filter = "best";
-    renderBlueprints();
+    renderList();
   });
 
   $("closeDetailBtn")?.addEventListener("click", closeDetail);
@@ -264,14 +193,9 @@ const bindEvents = () => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     const openId = target.getAttribute("data-open");
-    const rateId = target.getAttribute("data-rate");
     const rateValue = target.getAttribute("data-rate-value");
 
     if (openId) showDetail(openId);
-    if (rateId) {
-      state.openRating = true;
-      showDetail(rateId);
-    }
     if (rateValue && target.closest("#detailContent")) {
       if (state.currentDetailId) {
         submitRating(state.currentDetailId, Number(rateValue));
@@ -281,36 +205,6 @@ const bindEvents = () => {
       }
     }
   });
-
-  const accordion = document.querySelector(".accordion");
-  const panel = document.querySelector(".panel");
-  accordion?.addEventListener("click", () => {
-    const open = panel?.classList.toggle("open");
-    accordion.setAttribute("aria-expanded", String(open));
-    panel?.setAttribute("aria-hidden", String(!open));
-  });
-
-  // Secret key sequence to open Dev Options without a visible button.
-  const secret = "boredlabsdev";
-  let buffer = "";
-  document.addEventListener("keydown", (event) => {
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
-    if (event.key.length !== 1) return;
-    buffer = (buffer + event.key.toLowerCase()).slice(-secret.length);
-    if (buffer === secret) {
-      window.location.href = "admin.html";
-      buffer = "";
-    }
-  });
-};
-
-const listenFeatured = async () => {
-  const settingsRef = doc(db, "settings", "site");
-  const settingsSnap = await getDoc(settingsRef);
-  if (settingsSnap.exists()) {
-    state.featuredId = settingsSnap.data().featuredId || null;
-  }
-  renderFeatured();
 };
 
 const listenBlueprints = () => {
@@ -320,13 +214,11 @@ const listenBlueprints = () => {
       id: docSnap.id,
       ...docSnap.data()
     }));
-    renderBlueprints();
-    renderFeatured();
+    renderList();
   });
 };
 
 window.addEventListener("DOMContentLoaded", () => {
   listenBlueprints();
-  listenFeatured();
   bindEvents();
 });

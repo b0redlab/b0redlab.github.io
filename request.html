@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Request Blueprint | BoredLabs</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="request-page">
+    <header class="topbar solid">
+      <div class="brand">
+        <img class="brand-logo" src="bicon.png" alt="BoredLabs logo" />
+        <div>
+          <p class="eyebrow">Defeat Boredom</p>
+          <h1 class="brand-title">BoredLabs</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a class="pill ghost" href="index.html">Home</a>
+        <a class="pill primary" href="blueprints.html">
+          <span class="icon">&#128209;</span>
+          Blueprints
+        </a>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="request-hero">
+        <div>
+          <h2>Request a Blueprint</h2>
+          <p class="muted">Tell us what you want to build. Your request goes straight to the dev queue.</p>
+        </div>
+        <div class="request-card">
+          <form id="requestForm" class="form compact">
+            <label>
+              Blueprint Title <span class="req">*</span>
+              <input name="title" type="text" required />
+            </label>
+            <label>
+              Description <span class="req">*</span>
+              <textarea name="description" rows="3" required></textarea>
+            </label>
+            <label>
+              Photos (up to 3)
+              <input name="photos" type="file" accept="image/*" multiple />
+            </label>
+            <label>
+              Materials <span class="req">*</span>
+              <textarea name="materials" rows="3" required></textarea>
+            </label>
+            <label>
+              Steps <span class="req">*</span>
+              <textarea name="steps" rows="4" required></textarea>
+            </label>
+            <label>
+              Video URL (optional)
+              <input name="videoUrl" type="url" placeholder="https://" />
+            </label>
+            <button class="pill primary" type="submit">Submit Request</button>
+            <p class="muted small">Profanity is filtered automatically, including leetspeak.</p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Contact: jdingle@atomicmail.io</p>
+    </footer>
+
+    <script type="module" src="requests.js"></script>
+  </body>
+</html>
