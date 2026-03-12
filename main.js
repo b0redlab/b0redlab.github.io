@@ -285,9 +285,15 @@ const bindEvents = () => {
   const accordion = document.querySelector(".accordion");
   const panel = document.querySelector(".panel");
   accordion?.addEventListener("click", () => {
-    const open = panel?.classList.toggle("open");
-    accordion.setAttribute("aria-expanded", String(open));
-    panel?.setAttribute("aria-hidden", String(!open));
+    if (!panel) return;
+    const isOpen = panel.classList.toggle("open");
+    if (isOpen) {
+      panel.style.height = `${panel.scrollHeight}px`;
+    } else {
+      panel.style.height = "0px";
+    }
+    accordion.setAttribute("aria-expanded", String(isOpen));
+    panel.setAttribute("aria-hidden", String(!isOpen));
   });
 
   // Secret key sequence to open Dev Options without a visible button.
