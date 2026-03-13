@@ -28,6 +28,11 @@ const starsMarkup = (value, colorClass) => {
   `;
 };
 
+const goToLogin = () => {
+  const redirect = encodeURIComponent(window.location.pathname);
+  window.location.href = `auth.html?reason=login_required&redirect=${redirect}`;
+};
+
 const renderFeatured = () => {
   const titleEl = $("featuredTitle");
   const metaEl = $("featuredMeta");
@@ -78,6 +83,7 @@ const renderBlueprints = () => {
     .map((bp) => {
       const avg = ratingAverage(bp);
       const cover = bp.photos?.[0] || "";
+      const loginBadge = state.user ? "" : `<span class="pill-note">Login required</span>`;
       return `
         <article class="card">
           <img src="${cover}" alt="${bp.title}" />
@@ -92,7 +98,7 @@ const renderBlueprints = () => {
             <div>${starsMarkup(bp.cost, "green")}</div>
           </div>
           <div class="card-actions">
-            <button class="pill primary" data-open="${bp.id}" type="button">Get Blueprint</button>
+            <button class="pill primary" data-open="${bp.id}" type="button">Get Blueprint ${loginBadge}</button>
             <button class="pill ghost" data-rate="${bp.id}" type="button">Rate</button>
           </div>
         </article>
@@ -103,25 +109,8 @@ const renderBlueprints = () => {
 
 const showDetail = async (id) => {
   if (!state.user) {
-    const detail = $("detailModal");
-    const container = $("detailContent");
-    if (detail && container) {
-      container.innerHTML = `
-        <div class="detail-grid">
-          <div>
-            <h2>Log in to view full blueprint</h2>
-            <p class="muted">Create a free account to access materials, steps, and video links.</p>
-          </div>
-          <div class="admin-actions">
-            <a class="pill primary" href="auth.html?redirect=${encodeURIComponent(window.location.pathname)}">Log In / Sign Up</a>
-            <button id="guestClose" class="pill" type="button">Continue as guest</button>
-          </div>
-        </div>
-      `;
-      detail.classList.add("open");
-      detail.setAttribute("aria-hidden", "false");
-      document.getElementById("guestClose")?.addEventListener("click", closeDetail);
-    }
+    showToast("Login required.");
+    goToLogin();
     return;
   }
 

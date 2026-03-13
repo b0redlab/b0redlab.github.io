@@ -3,6 +3,8 @@ import { sanitizeText, sanitizeMultiline, hasProfanity, showToast, compressImage
 import { STORAGE_BUCKET } from "./supabase.js";
 
 const DRAFT_KEY = "bl_request_draft";
+const makeId = () =>
+  (crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
 const uploadImages = async (blobs, folder) => {
   const urls = [];
@@ -21,6 +23,21 @@ const uploadImages = async (blobs, folder) => {
 };
 
 const form = document.getElementById("requestForm");
+const gate = document.getElementById("requestAuthGate");
+
+const syncAuthGate = async () => {
+  const { data } = await supabase.auth.getSession();
+  const user = data?.session?.user || null;
+  if (!user) {
+    form?.classList.add("hidden");
+    gate?.classList.remove("hidden");
+    return false;
+  }
+  gate?.classList.add("hidden");
+  form?.classList.remove("hidden");
+  return true;
+};
+
 if (form) {
   const fields = ["title", "description", "materials", "steps", "videoUrl"];
 
@@ -57,6 +74,11 @@ if (form) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!supabase) return;
+    const ok = await syncAuthGate();
+    if (!ok) {
+      showToast("Login required.");
+      return;
+    }
     const data = new FormData(form);
     const title = sanitizeText(String(data.get("title") || ""));
     const description = sanitizeText(String(data.get("description") || ""));
@@ -71,40 +93,41 @@ if (form) {
       return;
     }
 
-    const { data: inserted, error } = await supabase
+    const requestId = makeId();
+    let photos = [];
+    try {
+      const blobs = await compressImages(files);
+      photos = blobs.length ? await uploadImages(blobs, `requests/${requestId}`) : [];
+    } catch (err) {
+      showToast(`Request saved, but image upload failed. ${err.message || "Check storage bucket policies."}`);
+      photos = [];
+    }
+
+    const { error } = await supabase
       .from("requests")
       .insert({
+        id: requestId,
         title,
         description,
         materials,
         steps,
         video_url: videoUrl,
-        photos: [],
+        photos,
         status: "pending"
-      })
-      .select()
-      .single();
+      });
 
-    if (error || !inserted) {
-      showToast("Request failed. Please try again.");
+    if (error) {
+      showToast(error.message || "Request failed. Please try again.");
       return;
-    }
-
-    let photos = [];
-    try {
-      const blobs = await compressImages(files);
-      photos = blobs.length ? await uploadImages(blobs, `requests/${inserted.id}`) : [];
-    } catch (err) {
-      showToast(`Upload failed: ${err.message || "Check storage bucket policies."}`);
-      return;
-    }
-
-    if (photos.length) {
-      await supabase.from("requests").update({ photos }).eq("id", inserted.id);
     }
 
     form.reset();
     localStorage.removeItem(DRAFT_KEY);
     showToast("Request sent to admin panel.");
+  });
+
+  syncAuthGate();
+  supabase.auth.onAuthStateChange(() => {
+    syncAuthGate();
   });
 }

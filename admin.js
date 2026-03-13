@@ -420,6 +420,11 @@ const handleManualAdd = async (event) => {
     .map((url) => url.trim())
     .filter(Boolean);
 
+  if (hasProfanity(`${title} ${description} ${materials} ${steps}`)) {
+    showToast("Please remove profanity before publishing.");
+    return;
+  }
+
   let uploadUrls = [];
   try {
     const blobs = await compressImages(data.getAll("photos"));
@@ -433,12 +438,7 @@ const handleManualAdd = async (event) => {
 
   const photos = [...photoUrls, ...uploadUrls].slice(0, 3);
 
-  if (hasProfanity(`${title} ${description} ${materials} ${steps}`)) {
-    showToast("Please remove profanity before publishing.");
-    return;
-  }
-
-  await supabase.from("blueprints").insert({
+  const { error } = await supabase.from("blueprints").insert({
     title,
     description,
     photos,
@@ -450,6 +450,11 @@ const handleManualAdd = async (event) => {
     rating_sum: 0,
     rating_count: 0
   });
+
+  if (error) {
+    showToast(error.message || "Publish failed. Check permissions.");
+    return;
+  }
 
   form.reset();
   showToast("Blueprint published.");

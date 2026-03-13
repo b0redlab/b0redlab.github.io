@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Request Blueprint | BoredLabs</title>
-    <link rel="stylesheet" href="style.css?v=1.2.3" />
+    <link rel="stylesheet" href="style.css?v=1.2.7" />
   </head>
   <body class="request-page">
     <header class="topbar solid">
@@ -36,6 +36,10 @@
           <p class="muted">Tell us what you want to build. Your request goes straight to the dev queue.</p>
         </div>
         <div class="request-card">
+          <div id="requestAuthGate" class="auth-gate hidden">
+            <p class="muted">Login required to submit a request.</p>
+            <a class="pill primary" href="auth.html?reason=login_required&redirect=request.html">Log In / Sign Up</a>
+          </div>
           <form id="requestForm" class="form compact">
             <label>
               Blueprint Title <span class="req">*</span>
@@ -72,7 +76,7 @@
       <p>Contact: jdingle@atomicmail.io</p>
     </footer>
 
-    <script type="module" src="requests.js?v=1.2.3"></script>
-    <script type="module" src="auth-status.js?v=1.2.3"></script>
+    <script type="module" src="requests.js?v=1.2.7"></script>
+    <script type="module" src="auth-status.js?v=1.2.7"></script>
   </body>
 </html>

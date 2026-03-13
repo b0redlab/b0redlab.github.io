@@ -4,6 +4,7 @@ import { showToast } from "./utils.js";
 const form = document.getElementById("authForm");
 const signupBtn = document.getElementById("signupBtn");
 const resetBtn = document.getElementById("resetBtn");
+const notice = document.getElementById("authNotice");
 // Google sign-in disabled by request.
 
 const getRedirect = () => {
@@ -11,9 +12,21 @@ const getRedirect = () => {
   return params.get("redirect") || "index.html";
 };
 
+const showReason = () => {
+  if (!notice) return;
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get("reason");
+  if (reason === "login_required") {
+    notice.textContent = "Login required to view full blueprints.";
+    notice.classList.remove("hidden");
+  }
+};
+
 if (!isSupabaseConfigured) {
   showToast("Supabase is not configured. Update supabase.js.");
 }
+
+showReason();
 
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
