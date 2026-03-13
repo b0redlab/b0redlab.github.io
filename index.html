@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BoredLabs</title>
-    <link rel="stylesheet" href="style.css?v=1.1.7" />
+    <link rel="stylesheet" href="style.css?v=1.2.0" />
   </head>
   <body class="home">
     <div class="bg-orb orb-1"></div>
@@ -20,7 +20,11 @@
         </div>
       </div>
       <div class="top-actions">
-        <a class="pill" href="auth.html">Log In</a>
+        <div id="authStatus" class="auth-status" hidden>
+          <span id="authEmail" class="badge"></span>
+          <button id="logoutBtn" class="pill ghost" type="button">Log Out</button>
+        </div>
+        <a id="loginLink" class="pill" href="auth.html">Log In</a>
         <a class="pill ghost" href="request.html">Request Blueprint</a>
         <a class="pill primary" href="blueprints.html">
           <span class="icon">&#128209;</span>
@@ -45,7 +49,7 @@
           <div class="hero-actions">
             <button id="getStartedBtn" class="pill primary" type="button">Get Started</button>
             <a class="pill" href="request.html">Request a Blueprint</a>
-            <a class="pill ghost" href="auth.html">Log In / Sign Up</a>
+            <a id="loginHeroLink" class="pill ghost" href="auth.html">Log In / Sign Up</a>
           </div>
         </div>
         <div class="hero-card">
@@ -126,7 +130,7 @@
         <button id="sideBestRated" class="panel-link" type="button">Best Rated</button>
         <a class="panel-link" href="request.html">Request Blueprints</a>
         <a class="panel-link" href="blueprints.html">Full Blueprint List</a>
-        <a class="panel-link" href="auth.html">Log In / Sign Up</a>
+        <a id="loginSideLink" class="panel-link" href="auth.html">Log In / Sign Up</a>
       </div>
     </aside>
 
@@ -142,6 +146,7 @@
       <p class="muted">BoredLabs on GitHub Pages</p>
     </footer>
 
-    <script type="module" src="main.js?v=1.1.7"></script>
+    <script type="module" src="main.js?v=1.2.0"></script>
+    <script type="module" src="auth-status.js?v=1.2.0"></script>
   </body>
 </html>

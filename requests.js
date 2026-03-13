@@ -2,6 +2,8 @@ import { supabase } from "./supabase.js";
 import { sanitizeText, sanitizeMultiline, hasProfanity, showToast, compressImages } from "./utils.js";
 import { STORAGE_BUCKET } from "./supabase.js";
 
+const DRAFT_KEY = "bl_request_draft";
+
 const uploadImages = async (blobs, folder) => {
   const urls = [];
   for (let i = 0; i < blobs.length; i += 1) {
@@ -20,6 +22,38 @@ const uploadImages = async (blobs, folder) => {
 
 const form = document.getElementById("requestForm");
 if (form) {
+  const fields = ["title", "description", "materials", "steps", "videoUrl"];
+
+  const loadDraft = () => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      fields.forEach((name) => {
+        const input = form.querySelector(`[name=${name}]`);
+        if (input && draft[name]) input.value = draft[name];
+      });
+    } catch {
+      // ignore bad draft
+    }
+  };
+
+  const saveDraft = () => {
+    const draft = {};
+    fields.forEach((name) => {
+      const input = form.querySelector(`[name=${name}]`);
+      if (input) draft[name] = input.value;
+    });
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  fields.forEach((name) => {
+    const input = form.querySelector(`[name=${name}]`);
+    input?.addEventListener("input", saveDraft);
+  });
+
+  loadDraft();
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!supabase) return;
@@ -70,6 +104,7 @@ if (form) {
     }
 
     form.reset();
+    localStorage.removeItem(DRAFT_KEY);
     showToast("Request sent to admin panel.");
   });
 }
