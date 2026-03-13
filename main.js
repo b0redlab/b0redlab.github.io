@@ -268,7 +268,12 @@ const bindEvents = () => {
   $("getStartedBtn")?.addEventListener("click", () => {
     state.filter = "all";
     renderBlueprints();
-    document.getElementById("blueprints")?.scrollIntoView({ behavior: "smooth" });
+    const section = document.getElementById("blueprints");
+    section?.scrollIntoView({ behavior: "smooth" });
+    if (section) {
+      section.classList.add("flash");
+      setTimeout(() => section.classList.remove("flash"), 900);
+    }
   });
 
   $("menuBtn")?.addEventListener("click", openMenu);
@@ -318,18 +323,19 @@ const bindEvents = () => {
     }
   });
 
-  const accordion = document.querySelector(".accordion");
-  const panel = document.querySelector(".panel");
-  accordion?.addEventListener("click", () => {
-    if (!panel) return;
-    const isOpen = panel.classList.toggle("open");
-    if (isOpen) {
-      panel.style.height = `${panel.scrollHeight}px`;
-    } else {
-      panel.style.height = "0px";
-    }
-    accordion.setAttribute("aria-expanded", String(isOpen));
-    panel.setAttribute("aria-hidden", String(!isOpen));
+  document.querySelectorAll(".accordion").forEach((accordion) => {
+    accordion.addEventListener("click", () => {
+      const panel = accordion.nextElementSibling;
+      if (!(panel instanceof HTMLElement)) return;
+      const isOpen = panel.classList.toggle("open");
+      if (isOpen) {
+        panel.style.height = `${panel.scrollHeight}px`;
+      } else {
+        panel.style.height = "0px";
+      }
+      accordion.setAttribute("aria-expanded", String(isOpen));
+      panel.setAttribute("aria-hidden", String(!isOpen));
+    });
   });
 
   const secret = "boredlabsdev";
