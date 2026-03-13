@@ -296,6 +296,17 @@ const bindEvents = () => {
     renderBlueprints();
   });
 
+  $("bestRatedFaqBtn")?.addEventListener("click", () => {
+    state.filter = "best";
+    renderBlueprints();
+    const section = document.getElementById("blueprints");
+    section?.scrollIntoView({ behavior: "smooth" });
+    if (section) {
+      section.classList.add("flash");
+      setTimeout(() => section.classList.remove("flash"), 900);
+    }
+  });
+
   $("closeDetailBtn")?.addEventListener("click", closeDetail);
   $("detailModal")?.addEventListener("click", (event) => {
     if (event.target.id === "detailModal") closeDetail();
@@ -330,8 +341,16 @@ const bindEvents = () => {
       const isOpen = panel.classList.toggle("open");
       if (isOpen) {
         panel.style.height = `${panel.scrollHeight}px`;
+        const onEnd = () => {
+          panel.style.height = "auto";
+          panel.removeEventListener("transitionend", onEnd);
+        };
+        panel.addEventListener("transitionend", onEnd);
       } else {
-        panel.style.height = "0px";
+        panel.style.height = `${panel.scrollHeight}px`;
+        requestAnimationFrame(() => {
+          panel.style.height = "0px";
+        });
       }
       accordion.setAttribute("aria-expanded", String(isOpen));
       panel.setAttribute("aria-hidden", String(!isOpen));

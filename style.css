@@ -654,6 +654,10 @@ textarea {
   gap: 12px;
 }
 
+.faq-actions {
+  margin-top: 10px;
+}
+
 .accordion {
   background: rgba(255, 255, 255, 0.08);
   border: none;
