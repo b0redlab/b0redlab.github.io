@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, STORAGE_BUCKET } from "./supabase.js";
+import { supabase, isSupabaseConfigured, STORAGE_BUCKET, SITE_URL } from "./supabase.js";
 import { sanitizeText, sanitizeMultiline, hasProfanity, showToast, compressImages } from "./utils.js";
 
 const ADMIN_EMAILS = [
@@ -82,7 +82,11 @@ const renderAuth = () => {
     const email = String(data.get("email") || "").trim();
     const password = String(data.get("password") || "");
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${SITE_URL}/auth.html` }
+    });
     if (error) {
       showToast("Signup failed. Try a stronger password.");
       return;
@@ -99,7 +103,7 @@ const renderAuth = () => {
       return;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/auth.html"
+      redirectTo: `${SITE_URL}/auth.html`
     });
     if (error) {
       showToast("Reset failed. Check the email address.");

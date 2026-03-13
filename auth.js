@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabase.js";
+import { supabase, isSupabaseConfigured, SITE_URL } from "./supabase.js";
 import { showToast } from "./utils.js";
 
 const form = document.getElementById("authForm");
@@ -36,7 +36,11 @@ signupBtn?.addEventListener("click", async () => {
   const email = String(data.get("email") || "").trim();
   const password = String(data.get("password") || "");
 
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: `${SITE_URL}/auth.html` }
+  });
   if (error) {
     showToast("Signup failed. Try a stronger password.");
     return;
@@ -53,7 +57,7 @@ resetBtn?.addEventListener("click", async () => {
     return;
   }
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + "/auth.html"
+    redirectTo: `${SITE_URL}/auth.html`
   });
   if (error) {
     showToast("Reset failed. Check the email address.");
