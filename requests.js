@@ -13,7 +13,7 @@ const uploadImages = async (blobs, folder) => {
       upsert: true,
       contentType: "image/jpeg"
     });
-    if (error) throw error;
+    if (error) throw new Error(error.message || "Upload failed");
     const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
     urls.push(data.publicUrl);
   }
@@ -95,7 +95,7 @@ if (form) {
       const blobs = await compressImages(files);
       photos = blobs.length ? await uploadImages(blobs, `requests/${inserted.id}`) : [];
     } catch (err) {
-      showToast("Upload failed. Check storage bucket policies.");
+      showToast(`Upload failed: ${err.message || "Check storage bucket policies."}`);
       return;
     }
 

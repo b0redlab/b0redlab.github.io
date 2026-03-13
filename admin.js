@@ -17,7 +17,7 @@ const uploadImages = async (blobs, folder) => {
       upsert: true,
       contentType: "image/jpeg"
     });
-    if (error) throw error;
+    if (error) throw new Error(error.message || "Upload failed");
     const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
     urls.push(data.publicUrl);
   }
@@ -427,7 +427,7 @@ const handleManualAdd = async (event) => {
       ? await uploadImages(blobs, `blueprints/manual_${crypto.randomUUID()}`)
       : [];
   } catch (err) {
-    showToast("Upload failed. Check storage bucket policies.");
+    showToast(`Upload failed: ${err.message || "Check storage bucket policies."}`);
     return;
   }
 
