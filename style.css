@@ -701,6 +701,10 @@ textarea {
   font-size: 0.75rem;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .toast {
   position: fixed;
   bottom: 24px;

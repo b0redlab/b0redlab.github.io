@@ -10,17 +10,17 @@ const logoutBtn = document.getElementById("logoutBtn");
 const setLoggedOut = () => {
   if (authStatus) authStatus.hidden = true;
   if (authEmail) authEmail.textContent = "";
-  if (loginLink) loginLink.hidden = false;
-  if (loginHeroLink) loginHeroLink.hidden = false;
-  if (loginSideLink) loginSideLink.hidden = false;
+  if (loginLink) loginLink.classList.remove("hidden");
+  if (loginHeroLink) loginHeroLink.classList.remove("hidden");
+  if (loginSideLink) loginSideLink.classList.remove("hidden");
 };
 
 const setLoggedIn = (email) => {
   if (authStatus) authStatus.hidden = false;
   if (authEmail) authEmail.textContent = email || "Logged in";
-  if (loginLink) loginLink.hidden = true;
-  if (loginHeroLink) loginHeroLink.hidden = true;
-  if (loginSideLink) loginSideLink.hidden = true;
+  if (loginLink) loginLink.classList.add("hidden");
+  if (loginHeroLink) loginHeroLink.classList.add("hidden");
+  if (loginSideLink) loginSideLink.classList.add("hidden");
 };
 
 if (!isSupabaseConfigured) {
