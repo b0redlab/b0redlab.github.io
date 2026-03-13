@@ -72,7 +72,7 @@ const renderAuth = () => {
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      showToast("Login failed. Check your email and password.");
+      showToast("Incorrect email or password.");
     }
   });
 
@@ -88,7 +88,7 @@ const renderAuth = () => {
       options: { emailRedirectTo: `${SITE_URL}/auth.html` }
     });
     if (error) {
-      showToast("Signup failed. Try a stronger password.");
+      showToast(error.message || "Signup failed.");
       return;
     }
     showToast("Account created. Check your email to verify.");
@@ -106,7 +106,7 @@ const renderAuth = () => {
       redirectTo: `${SITE_URL}/auth.html`
     });
     if (error) {
-      showToast("Reset failed. Check the email address.");
+      showToast(error.message || "Reset failed.");
       return;
     }
     showToast("Password reset sent.");
