@@ -14,7 +14,7 @@ const uploadImages = async (blobs, folder) => {
     const blob = blobs[i];
     const path = `${folder}/image_${i + 1}.jpg`;
     const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, blob, {
-      upsert: true,
+      upsert: false,
       contentType: "image/jpeg"
     });
     if (error) throw new Error(error.message || "Upload failed");
