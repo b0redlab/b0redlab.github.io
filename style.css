@@ -76,6 +76,86 @@ body,
   z-index: -1;
 }
 
+.sticker-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.sticker {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #0b0f1a;
+  box-shadow: 0 24px 60px rgba(4, 10, 24, 0.45);
+  animation: floatSticker 7s ease-in-out infinite;
+}
+
+.sticker-planet {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #5bd2ff, #2b80ff 55%, #1a2450 100%);
+  top: 60px;
+  right: -80px;
+  animation-duration: 9s;
+}
+
+.sticker-planet::after {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.45);
+  transform: rotate(-14deg);
+  left: -30px;
+  top: 80px;
+  opacity: 0.7;
+}
+
+.sticker-ticket {
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffd054, #ff8e6c);
+  bottom: 18%;
+  left: 6%;
+  transform: rotate(-6deg);
+  font-size: 0.8rem;
+}
+
+.sticker-spark {
+  width: 86px;
+  height: 86px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #78f0ff, #5bd2ff);
+  top: 18%;
+  left: 10%;
+  transform: rotate(12deg);
+}
+
+.sticker-spark::before {
+  content: "★";
+  font-size: 1.8rem;
+}
+
+.sticker-note {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #101628;
+  bottom: 8%;
+  right: 8%;
+  transform: rotate(4deg);
+  font-size: 0.75rem;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -193,16 +273,41 @@ body,
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .pill:hover {
   transform: translateY(-2px);
 }
 
+.pill:active {
+  transform: translateY(0) scale(0.98);
+}
+
 .pill-note {
   margin-left: 8px;
   font-size: 0.72rem;
   opacity: 0.85;
+}
+
+.pill::after,
+.icon-btn::after,
+.panel-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(91, 210, 255, 0.45) 0%, rgba(91, 210, 255, 0) 60%);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.3s ease, transform 0.5s ease;
+}
+
+.pill:active::after,
+.icon-btn:active::after,
+.panel-link:active::after {
+  opacity: 1;
+  transform: scale(1.6);
 }
 
 .primary {
@@ -229,6 +334,8 @@ body,
   gap: 1px;
   transition: transform 0.2s ease;
   padding: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .icon-btn span {
@@ -443,6 +550,8 @@ body,
   text-decoration: none;
   display: block;
   appearance: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .panel-link:hover {
@@ -732,11 +841,12 @@ textarea {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: rgba(25, 30, 45, 0.95);
+  background: linear-gradient(135deg, rgba(43, 128, 255, 0.95), rgba(91, 210, 255, 0.95));
   color: var(--text);
-  padding: 12px 18px;
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  padding: 14px 20px;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(43, 128, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -746,6 +856,7 @@ textarea {
 .toast.show {
   opacity: 1;
   transform: translateY(0);
+  animation: toastPop 0.45s ease;
 }
 
 @keyframes fadeIn {
@@ -772,6 +883,16 @@ textarea {
   0% { box-shadow: 0 0 0 rgba(91, 210, 255, 0.0); }
   50% { box-shadow: 0 0 40px rgba(91, 210, 255, 0.35); }
   100% { box-shadow: 0 0 0 rgba(91, 210, 255, 0.0); }
+}
+
+@keyframes floatSticker {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes toastPop {
+  0% { transform: translateY(10px) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
 }
 
 @media (max-width: 720px) {

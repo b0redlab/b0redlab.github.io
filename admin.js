@@ -24,95 +24,28 @@ const uploadImages = async (blobs, folder) => {
   return urls;
 };
 
-const renderAuth = () => {
-  if (!adminContent) return;
-  if (!isSupabaseConfigured) {
-    adminContent.innerHTML = `
-      <div class="admin-grid">
-        <div>
-          <h2>Dev Options</h2>
-          <p class="muted">Supabase is not configured. Update supabase.js with your project keys.</p>
-        </div>
-      </div>
-    `;
-    return;
-  }
+const redirectToLogin = () => {
+  const redirect = encodeURIComponent("admin.html");
+  window.location.href = `auth.html?reason=login_required&redirect=${redirect}`;
+};
 
+const renderDenied = () => {
+  if (!adminContent) return;
   adminContent.innerHTML = `
     <div class="admin-grid">
       <div>
         <h2>Dev Options</h2>
-        <p class="muted">Sign in or create an admin account.</p>
+        <p class="muted">This account does not have admin access.</p>
       </div>
       <div class="admin-card">
-        <form id="loginForm" class="form compact">
-          <label>
-            Email <span class="req">*</span>
-            <input name="email" type="email" required />
-          </label>
-          <label>
-            Password <span class="req">*</span>
-            <input name="password" type="password" required />
-          </label>
-          <div class="admin-actions">
-            <button class="pill primary" type="submit">Log In</button>
-            <button id="signupBtn" class="pill" type="button">Sign Up</button>
-          </div>
-          <button id="resetBtn" class="pill ghost" type="button">Forgot password?</button>
-        </form>
+        <button id="logoutBtn" class="pill" type="button">Log Out</button>
       </div>
     </div>
   `;
-
-  document.getElementById("loginForm")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const data = new FormData(event.target);
-    const email = String(data.get("email") || "").trim();
-    const password = String(data.get("password") || "");
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      showToast("Incorrect email or password.");
-    }
+  document.getElementById("logoutBtn")?.addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    redirectToLogin();
   });
-
-  document.getElementById("signupBtn")?.addEventListener("click", async () => {
-    const form = document.getElementById("loginForm");
-    const data = new FormData(form);
-    const email = String(data.get("email") || "").trim();
-    const password = String(data.get("password") || "");
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${SITE_URL}/auth.html` }
-    });
-    if (error) {
-      showToast(error.message || "Signup failed.");
-      return;
-    }
-    showToast("Account created. Check your email to verify.");
-  });
-
-  document.getElementById("resetBtn")?.addEventListener("click", async () => {
-    const form = document.getElementById("loginForm");
-    const data = new FormData(form);
-    const email = String(data.get("email") || "").trim();
-    if (!email) {
-      showToast("Enter your email first.");
-      return;
-    }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${SITE_URL}/auth.html`
-    });
-    if (error) {
-      showToast(error.message || "Reset failed.");
-      return;
-    }
-    showToast("Password reset sent.");
-  });
-
-  // Google sign-in disabled by request.
 };
 
 const renderAdmin = async (user) => {
@@ -133,20 +66,7 @@ const renderAdmin = async (user) => {
   }
 
   if (!isAdmin) {
-    adminContent.innerHTML = `
-      <div class="admin-grid">
-        <div>
-          <h2>Dev Options</h2>
-          <p class="muted">This account does not have admin access.</p>
-        </div>
-        <div class="admin-card">
-          <button id="logoutBtn" class="pill" type="button">Log Out</button>
-        </div>
-      </div>
-    `;
-    document.getElementById("logoutBtn")?.addEventListener("click", async () => {
-      await supabase.auth.signOut();
-    });
+    renderDenied();
     return;
   }
 
@@ -498,17 +418,25 @@ const handleFeature = async (id) => {
   showToast("Featured blueprint updated.");
 };
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   if (!supabase) {
-    renderAuth();
+    showToast("Supabase is not configured.");
     return;
+  }
+
+  const { data } = await supabase.auth.getSession();
+  const user = data?.session?.user || null;
+  if (!user) {
+    redirectToLogin();
+  } else {
+    renderAdmin(user);
   }
 
   supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.user) {
       renderAdmin(session.user);
     } else {
-      renderAuth();
+      redirectToLogin();
     }
   });
 });
