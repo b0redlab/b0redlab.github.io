@@ -4,12 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BoredLabs</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=1.3.1" />
   </head>
   <body class="home">
     <div class="bg-orb orb-1"></div>
     <div class="bg-orb orb-2"></div>
     <div class="grain"></div>
+    <div class="lbp-patch" aria-hidden="true"></div>
 
     <header class="topbar">
       <div class="brand">
@@ -20,6 +21,11 @@
         </div>
       </div>
       <div class="top-actions">
+        <div id="authStatus" class="auth-status" hidden>
+          <span id="authEmail" class="badge"></span>
+          <button id="logoutBtn" class="pill ghost" type="button">Log Out</button>
+        </div>
+        <a id="loginLink" class="pill" href="auth.html">Log In</a>
         <a class="pill ghost" href="request.html">Request Blueprint</a>
         <a class="pill primary" href="blueprints.html">
           <span class="icon">&#128209;</span>
@@ -44,6 +50,7 @@
           <div class="hero-actions">
             <button id="getStartedBtn" class="pill primary" type="button">Get Started</button>
             <a class="pill" href="request.html">Request a Blueprint</a>
+            <a id="loginHeroLink" class="pill ghost" href="auth.html">Log In / Sign Up</a>
           </div>
         </div>
         <div class="hero-card">
@@ -70,15 +77,47 @@
       </section>
 
       <section class="faq" id="howto">
-        <h2>Whats the format for the blueprints?</h2>
+        <h2>FAQ</h2>
+
         <button class="accordion" type="button" aria-expanded="false">
-          Click to view the blueprint format
+          Whats the format for the blueprints?
         </button>
         <div class="panel" aria-hidden="true">
           <p class="muted">
             The format is to put materials in a list, then place the instructions in a simple way that we can understand.
             If you have a video, place the link in the box for it.
           </p>
+        </div>
+
+        <button class="accordion" type="button" aria-expanded="false">
+          Can I request a new blueprint?
+        </button>
+        <div class="panel" aria-hidden="true">
+          <p class="muted">
+            Yes. Use the Request Blueprint page and your request will show up in the dev queue.
+          </p>
+        </div>
+
+        <button class="accordion" type="button" aria-expanded="false">
+          Do I need an account to view full steps?
+        </button>
+        <div class="panel" aria-hidden="true">
+          <p class="muted">
+            You can browse previews as a guest, but full materials and steps require a free login.
+          </p>
+        </div>
+
+        <button class="accordion" type="button" aria-expanded="false">
+          Can I include a video tutorial?
+        </button>
+        <div class="panel" aria-hidden="true">
+          <p class="muted">
+            Yes. Add the video link in the Video URL field when you submit a request.
+          </p>
+        </div>
+
+        <div class="faq-actions">
+          <button id="bestRatedFaqBtn" class="pill primary" type="button">Show Best Rated Blueprints</button>
         </div>
       </section>
     </main>
@@ -92,6 +131,7 @@
         <button id="sideBestRated" class="panel-link" type="button">Best Rated</button>
         <a class="panel-link" href="request.html">Request Blueprints</a>
         <a class="panel-link" href="blueprints.html">Full Blueprint List</a>
+        <a id="loginSideLink" class="panel-link" href="auth.html">Log In / Sign Up</a>
       </div>
     </aside>
 
@@ -107,6 +147,7 @@
       <p class="muted">BoredLabs on GitHub Pages</p>
     </footer>
 
-    <script type="module" src="main.js"></script>
+    <script type="module" src="main.js?v=1.3.1"></script>
+    <script type="module" src="auth-status.js?v=1.3.1"></script>
   </body>
 </html>

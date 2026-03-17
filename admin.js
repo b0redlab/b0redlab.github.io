@@ -1,26 +1,10 @@
-import {
-  db,
-  storage,
-  collection,
-  addDoc,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  where,
-  serverTimestamp,
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "./firebase.js";
+import { supabase, isSupabaseConfigured, STORAGE_BUCKET, SITE_URL } from "./supabase.js";
 import { sanitizeText, sanitizeMultiline, hasProfanity, showToast, compressImages } from "./utils.js";
 
-const ADMIN_PASSWORD = "t@jding43";
-const ADMIN_FLAG = "bl_admin";
+const ADMIN_EMAILS = [
+  "jdingle@atomicmail.io",
+  "odiealejua@gmail.com"
+];
 
 const adminContent = document.getElementById("adminContent");
 
@@ -28,50 +12,69 @@ const uploadImages = async (blobs, folder) => {
   const urls = [];
   for (let i = 0; i < blobs.length; i += 1) {
     const blob = blobs[i];
-    const imageRef = ref(storage, `${folder}/image_${i + 1}.jpg`);
-    await uploadBytes(imageRef, blob);
-    const url = await getDownloadURL(imageRef);
-    urls.push(url);
+    const path = `${folder}/image_${i + 1}.jpg`;
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, blob, {
+      upsert: false,
+      contentType: "image/jpeg"
+    });
+    if (error) throw new Error(error.message || "Upload failed");
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    urls.push(data.publicUrl);
   }
   return urls;
 };
 
-const renderLogin = () => {
+const redirectToLogin = () => {
+  const redirect = encodeURIComponent("admin.html");
+  window.location.href = `auth.html?reason=login_required&redirect=${redirect}`;
+};
+
+const renderDenied = () => {
   if (!adminContent) return;
   adminContent.innerHTML = `
     <div class="admin-grid">
       <div>
         <h2>Dev Options</h2>
-        <p class="muted">Enter the code once to unlock admin controls.</p>
+        <p class="muted">This account does not have admin access.</p>
       </div>
       <div class="admin-card">
-        <label>
-          Access Code
-          <input id="adminPassword" type="password" />
-        </label>
-        <button id="adminLogin" class="pill primary" type="button">Unlock</button>
+        <button id="logoutBtn" class="pill" type="button">Log Out</button>
       </div>
     </div>
   `;
-
-  document.getElementById("adminLogin")?.addEventListener("click", () => {
-    const value = document.getElementById("adminPassword")?.value || "";
-    if (value === ADMIN_PASSWORD) {
-      localStorage.setItem(ADMIN_FLAG, "true");
-      renderAdmin();
-    } else {
-      showToast("Incorrect code.");
-    }
+  document.getElementById("logoutBtn")?.addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    redirectToLogin();
   });
 };
 
-const renderAdmin = () => {
+const renderAdmin = async (user) => {
   if (!adminContent) return;
+
+  const isAllowed = ADMIN_EMAILS.includes(user.email || "");
+  let isAdmin = isAllowed;
+
+  try {
+    const { data } = await supabase
+      .from("admins")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (data) isAdmin = true;
+  } catch {
+    // ignore if admins table not set yet
+  }
+
+  if (!isAdmin) {
+    renderDenied();
+    return;
+  }
+
   adminContent.innerHTML = `
     <div class="admin-grid">
       <div>
         <h2>Dev Options</h2>
-        <p class="muted">Manage requests, publish new blueprints, and edit live content.</p>
+        <p class="muted">Signed in as ${user.email || "admin"}. Manage requests and blueprints.</p>
       </div>
 
       <div class="admin-toolbar">
@@ -79,6 +82,7 @@ const renderAdmin = () => {
         <button class="pill" data-scroll="upload">Upload Blueprint</button>
         <button class="pill" data-scroll="live">Edit Blueprints</button>
         <button class="pill" data-scroll="live">Delete Blueprints</button>
+        <button id="logoutBtn" class="pill" type="button">Log Out</button>
       </div>
 
       <div class="admin-card" id="pendingRequests">
@@ -139,6 +143,10 @@ const renderAdmin = () => {
   bindAdminEvents();
   listenRequests();
   listenBlueprints();
+
+  document.getElementById("logoutBtn")?.addEventListener("click", async () => {
+    await supabase.auth.signOut();
+  });
 };
 
 const bindAdminEvents = () => {
@@ -153,126 +161,130 @@ const bindAdminEvents = () => {
   });
 };
 
-const listenRequests = () => {
+const listenRequests = async () => {
   const container = document.getElementById("pendingRequests");
   if (!container) return;
 
-  const q = query(collection(db, "requests"), where("status", "==", "pending"), orderBy("createdAt", "desc"));
+  const { data } = await supabase
+    .from("requests")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
 
-  onSnapshot(q, (snapshot) => {
-    const requests = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-    container.innerHTML = `
-      <h3>Pending Requests (${requests.length})</h3>
-      ${requests
-        .map(
-          (req) => `
-          <div class="admin-card" data-req="${req.id}">
-            <strong>${req.title}</strong>
-            <p class="muted">${req.description}</p>
-            <div class="detail-photos">
-              ${(req.photos || [])
-                .map((src) => `<img src="${src}" alt="${req.title}" />`)
-                .join("")}
-            </div>
-            <div class="list">
-              <div><span class="badge">Materials</span> ${req.materials}</div>
-              <div><span class="badge">Steps</span> ${sanitizeMultiline(req.steps).replace(/\n/g, "<br />")}</div>
-              ${req.videoUrl ? `<div><span class="badge">Video</span> ${req.videoUrl}</div>` : ""}
-            </div>
-            <div class="list">
-              <label>
-                Difficulty (1-5)
-                <input type="number" min="1" max="5" value="3" class="difficulty-input" />
-              </label>
-              <label>
-                Cost (1-5)
-                <input type="number" min="1" max="5" value="3" class="cost-input" />
-              </label>
-            </div>
-            <div class="admin-actions">
-              <button class="pill primary" data-accept="${req.id}" type="button">Accept</button>
-              <button class="pill" data-deny="${req.id}" type="button">Deny</button>
-            </div>
+  const requests = data || [];
+  container.innerHTML = `
+    <h3>Pending Requests (${requests.length})</h3>
+    ${requests
+      .map(
+        (req) => `
+        <div class="admin-card" data-req="${req.id}">
+          <strong>${req.title}</strong>
+          <p class="muted">${req.description}</p>
+          <div class="detail-photos">
+            ${(req.photos || [])
+              .map((src) => `<img src="${src}" alt="${req.title}" />`)
+              .join("")}
           </div>
-        `
-        )
-        .join("") || `<div class="muted">No pending requests.</div>`}
-    `;
+          <div class="list">
+            <div><span class="badge">Materials</span> ${req.materials}</div>
+            <div><span class="badge">Steps</span> ${sanitizeMultiline(req.steps).replace(/\n/g, "<br />")}</div>
+            ${req.video_url ? `<div><span class="badge">Video</span> ${req.video_url}</div>` : ""}
+          </div>
+          <div class="list">
+            <label>
+              Difficulty (1-5)
+              <input type="number" min="1" max="5" value="3" class="difficulty-input" />
+            </label>
+            <label>
+              Cost (1-5)
+              <input type="number" min="1" max="5" value="3" class="cost-input" />
+            </label>
+          </div>
+          <div class="admin-actions">
+            <button class="pill primary" data-accept="${req.id}" type="button">Accept</button>
+            <button class="pill" data-deny="${req.id}" type="button">Deny</button>
+          </div>
+        </div>
+      `
+      )
+      .join("") || `<div class="muted">No pending requests.</div>`}
+  `;
 
-    container.querySelectorAll("[data-accept]").forEach((btn) => {
-      btn.addEventListener("click", (event) => {
-        const id = event.currentTarget.getAttribute("data-accept");
-        handleAccept(id);
-      });
+  container.querySelectorAll("[data-accept]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const id = event.currentTarget.getAttribute("data-accept");
+      handleAccept(id);
     });
+  });
 
-    container.querySelectorAll("[data-deny]").forEach((btn) => {
-      btn.addEventListener("click", (event) => {
-        const id = event.currentTarget.getAttribute("data-deny");
-        handleDeny(id);
-      });
+  container.querySelectorAll("[data-deny]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const id = event.currentTarget.getAttribute("data-deny");
+      handleDeny(id);
     });
   });
 };
 
-const listenBlueprints = () => {
+const listenBlueprints = async () => {
   const container = document.getElementById("liveBlueprints");
   if (!container) return;
 
-  const q = query(collection(db, "blueprints"), orderBy("createdAt", "desc"));
-  onSnapshot(q, (snapshot) => {
-    const blueprints = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-    container.innerHTML = `
-      <h3>Live Blueprints (${blueprints.length})</h3>
-      ${blueprints
-        .map(
-          (bp) => `
-          <div class="admin-card" data-blueprint="${bp.id}">
-            <strong>${bp.title}</strong>
-            <div class="detail-photos">
-              ${(bp.photos || [])
-                .map((src) => `<img src="${src}" alt="${bp.title}" />`)
-                .join("")}
-            </div>
-            <div class="list">
-              <label>Title <input type="text" name="title" value="${bp.title}" /></label>
-              <label>Description <textarea name="description" rows="2">${bp.description}</textarea></label>
-              <label>Materials <textarea name="materials" rows="2">${bp.materials || ""}</textarea></label>
-              <label>Steps <textarea name="steps" rows="3">${bp.steps || ""}</textarea></label>
-              <label>Video URL <input type="url" name="videoUrl" value="${bp.videoUrl || ""}" /></label>
-              <label>Difficulty <input type="number" min="1" max="5" name="difficulty" value="${bp.difficulty}" /></label>
-              <label>Cost <input type="number" min="1" max="5" name="cost" value="${bp.cost}" /></label>
-            </div>
-            <div class="admin-actions">
-              <button class="pill primary" data-save="${bp.id}" type="button">Save Edits</button>
-              <button class="pill" data-feature="${bp.id}" type="button">Set Featured</button>
-              <button class="pill" data-delete="${bp.id}" type="button">Delete</button>
-            </div>
+  const { data } = await supabase
+    .from("blueprints")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const blueprints = data || [];
+  container.innerHTML = `
+    <h3>Live Blueprints (${blueprints.length})</h3>
+    ${blueprints
+      .map(
+        (bp) => `
+        <div class="admin-card" data-blueprint="${bp.id}">
+          <strong>${bp.title}</strong>
+          <div class="detail-photos">
+            ${(bp.photos || [])
+              .map((src) => `<img src="${src}" alt="${bp.title}" />`)
+              .join("")}
           </div>
-        `
-        )
-        .join("") || `<div class="muted">No blueprints yet.</div>`}
-    `;
+          <div class="list">
+            <label>Title <input type="text" name="title" value="${bp.title}" /></label>
+            <label>Description <textarea name="description" rows="2">${bp.description}</textarea></label>
+            <label>Materials <textarea name="materials" rows="2">${bp.materials || ""}</textarea></label>
+            <label>Steps <textarea name="steps" rows="3">${bp.steps || ""}</textarea></label>
+            <label>Video URL <input type="url" name="videoUrl" value="${bp.video_url || ""}" /></label>
+            <label>Difficulty <input type="number" min="1" max="5" name="difficulty" value="${bp.difficulty}" /></label>
+            <label>Cost <input type="number" min="1" max="5" name="cost" value="${bp.cost}" /></label>
+          </div>
+          <div class="admin-actions">
+            <button class="pill primary" data-save="${bp.id}" type="button">Save Edits</button>
+            <button class="pill" data-feature="${bp.id}" type="button">Set Featured</button>
+            <button class="pill" data-delete="${bp.id}" type="button">Delete</button>
+          </div>
+        </div>
+      `
+      )
+      .join("") || `<div class="muted">No blueprints yet.</div>`}
+  `;
 
-    container.querySelectorAll("[data-save]").forEach((btn) => {
-      btn.addEventListener("click", (event) => {
-        const id = event.currentTarget.getAttribute("data-save");
-        handleSave(id);
-      });
+  container.querySelectorAll("[data-save]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const id = event.currentTarget.getAttribute("data-save");
+      handleSave(id);
     });
+  });
 
-    container.querySelectorAll("[data-delete]").forEach((btn) => {
-      btn.addEventListener("click", (event) => {
-        const id = event.currentTarget.getAttribute("data-delete");
-        handleDelete(id);
-      });
+  container.querySelectorAll("[data-delete]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const id = event.currentTarget.getAttribute("data-delete");
+      handleDelete(id);
     });
+  });
 
-    container.querySelectorAll("[data-feature]").forEach((btn) => {
-      btn.addEventListener("click", (event) => {
-        const id = event.currentTarget.getAttribute("data-feature");
-        handleFeature(id);
-      });
+  container.querySelectorAll("[data-feature]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      const id = event.currentTarget.getAttribute("data-feature");
+      handleFeature(id);
     });
   });
 };
@@ -282,32 +294,32 @@ const handleAccept = async (id) => {
   const difficulty = Number(card?.querySelector(".difficulty-input")?.value || 3);
   const cost = Number(card?.querySelector(".cost-input")?.value || 3);
 
-  const reqRef = doc(db, "requests", id);
-  const reqSnapshot = await getDoc(reqRef);
-  if (!reqSnapshot.exists()) return;
-  const request = reqSnapshot.data();
+  const { data: request } = await supabase.from("requests").select("*").eq("id", id).maybeSingle();
+  if (!request) return;
 
-  await addDoc(collection(db, "blueprints"), {
+  await supabase.from("blueprints").insert({
     title: request.title,
     description: request.description,
     photos: request.photos || [],
     materials: request.materials,
     steps: request.steps,
-    videoUrl: request.videoUrl || "",
+    video_url: request.video_url || "",
     difficulty,
     cost,
-    ratingSum: 0,
-    ratingCount: 0,
-    createdAt: serverTimestamp()
+    rating_sum: 0,
+    rating_count: 0
   });
 
-  await updateDoc(reqRef, { status: "accepted" });
+  await supabase.from("requests").update({ status: "accepted" }).eq("id", id);
   showToast("Blueprint accepted and published.");
+  listenRequests();
+  listenBlueprints();
 };
 
 const handleDeny = async (id) => {
-  await updateDoc(doc(db, "requests", id), { status: "denied" });
+  await supabase.from("requests").update({ status: "denied" }).eq("id", id);
   showToast("Request denied.");
+  listenRequests();
 };
 
 const handleManualAdd = async (event) => {
@@ -328,6 +340,11 @@ const handleManualAdd = async (event) => {
     .map((url) => url.trim())
     .filter(Boolean);
 
+  if (hasProfanity(`${title} ${description} ${materials} ${steps}`)) {
+    showToast("Please remove profanity before publishing.");
+    return;
+  }
+
   let uploadUrls = [];
   try {
     const blobs = await compressImages(data.getAll("photos"));
@@ -335,33 +352,33 @@ const handleManualAdd = async (event) => {
       ? await uploadImages(blobs, `blueprints/manual_${crypto.randomUUID()}`)
       : [];
   } catch (err) {
-    showToast("Upload failed. Check Firebase Storage rules.");
+    showToast(`Upload failed: ${err.message || "Check storage bucket policies."}`);
     return;
   }
 
   const photos = [...photoUrls, ...uploadUrls].slice(0, 3);
 
-  if (hasProfanity(`${title} ${description} ${materials} ${steps}`)) {
-    showToast("Please remove profanity before publishing.");
-    return;
-  }
-
-  await addDoc(collection(db, "blueprints"), {
+  const { error } = await supabase.from("blueprints").insert({
     title,
     description,
     photos,
     materials,
     steps,
-    videoUrl,
+    video_url: videoUrl,
     difficulty,
     cost,
-    ratingSum: 0,
-    ratingCount: 0,
-    createdAt: serverTimestamp()
+    rating_sum: 0,
+    rating_count: 0
   });
+
+  if (error) {
+    showToast(error.message || "Publish failed. Check permissions.");
+    return;
+  }
 
   form.reset();
   showToast("Blueprint published.");
+  listenBlueprints();
 };
 
 const handleSave = async (id) => {
@@ -373,7 +390,7 @@ const handleSave = async (id) => {
     description: sanitizeText(card.querySelector("[name=description]")?.value || ""),
     materials: sanitizeMultiline(card.querySelector("[name=materials]")?.value || ""),
     steps: sanitizeMultiline(card.querySelector("[name=steps]")?.value || ""),
-    videoUrl: sanitizeText(card.querySelector("[name=videoUrl]")?.value || ""),
+    video_url: sanitizeText(card.querySelector("[name=videoUrl]")?.value || ""),
     difficulty: Number(card.querySelector("[name=difficulty]")?.value || 1),
     cost: Number(card.querySelector("[name=cost]")?.value || 1)
   };
@@ -383,27 +400,43 @@ const handleSave = async (id) => {
     return;
   }
 
-  await updateDoc(doc(db, "blueprints", id), payload);
+  await supabase.from("blueprints").update(payload).eq("id", id);
   showToast("Blueprint updated.");
+  listenBlueprints();
 };
 
 const handleDelete = async (id) => {
   if (!id) return;
   if (!confirm("Delete this blueprint? This cannot be undone.")) return;
-  await deleteDoc(doc(db, "blueprints", id));
+  await supabase.from("blueprints").delete().eq("id", id);
   showToast("Blueprint deleted.");
+  listenBlueprints();
 };
 
 const handleFeature = async (id) => {
-  await setDoc(doc(db, "settings", "site"), { featuredId: id }, { merge: true });
+  await supabase.from("settings").upsert({ id: "site", featured_id: id });
   showToast("Featured blueprint updated.");
 };
 
-window.addEventListener("DOMContentLoaded", () => {
-  const unlocked = localStorage.getItem(ADMIN_FLAG) === "true";
-  if (unlocked) {
-    renderAdmin();
-  } else {
-    renderLogin();
+window.addEventListener("DOMContentLoaded", async () => {
+  if (!supabase) {
+    showToast("Supabase is not configured.");
+    return;
   }
+
+  const { data } = await supabase.auth.getSession();
+  const user = data?.session?.user || null;
+  if (!user) {
+    redirectToLogin();
+  } else {
+    renderAdmin(user);
+  }
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session?.user) {
+      renderAdmin(session.user);
+    } else {
+      redirectToLogin();
+    }
+  });
 });

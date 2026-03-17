@@ -1,29 +1,20 @@
-import {
-  db,
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  doc,
-  getDoc,
-  runTransaction,
-  serverTimestamp
-} from "./firebase.js";
-import { sanitizeMultiline, getUserId, showToast } from "./utils.js";
+import { supabase, isSupabaseConfigured } from "./supabase.js";
+import { sanitizeMultiline, showToast } from "./utils.js";
 
 const state = {
   filter: "all",
   blueprintCache: [],
   openRating: false,
   currentDetailId: null,
-  featuredId: null
+  featuredId: null,
+  user: null
 };
 
 const $ = (id) => document.getElementById(id);
 
 const ratingAverage = (bp) => {
-  if (!bp || !bp.ratingCount) return 0;
-  return Math.round((bp.ratingSum / bp.ratingCount) * 10) / 10;
+  if (!bp || !bp.rating_count) return 0;
+  return Math.round((bp.rating_sum / bp.rating_count) * 10) / 10;
 };
 
 const starsMarkup = (value, colorClass) => {
@@ -35,6 +26,11 @@ const starsMarkup = (value, colorClass) => {
         .join("")}
     </div>
   `;
+};
+
+const goToLogin = () => {
+  const redirect = encodeURIComponent(window.location.pathname);
+  window.location.href = `auth.html?reason=login_required&redirect=${redirect}`;
 };
 
 const renderFeatured = () => {
@@ -87,6 +83,7 @@ const renderBlueprints = () => {
     .map((bp) => {
       const avg = ratingAverage(bp);
       const cover = bp.photos?.[0] || "";
+      const loginBadge = state.user ? "" : `<span class="pill-note">Login required</span>`;
       return `
         <article class="card">
           <img src="${cover}" alt="${bp.title}" />
@@ -96,12 +93,12 @@ const renderBlueprints = () => {
           </div>
           <div class="rating-block">
             <div>${starsMarkup(avg)}</div>
-            <div class="badge">${avg} rating (${bp.ratingCount || 0})</div>
+            <div class="badge">${avg} rating (${bp.rating_count || 0})</div>
             <div>${starsMarkup(bp.difficulty, "red")}</div>
             <div>${starsMarkup(bp.cost, "green")}</div>
           </div>
           <div class="card-actions">
-            <button class="pill primary" data-open="${bp.id}" type="button">Get Blueprint</button>
+            <button class="pill primary" data-open="${bp.id}" type="button">Get Blueprint ${loginBadge}</button>
             <button class="pill ghost" data-rate="${bp.id}" type="button">Rate</button>
           </div>
         </article>
@@ -111,6 +108,12 @@ const renderBlueprints = () => {
 };
 
 const showDetail = async (id) => {
+  if (!state.user) {
+    showToast("Login required.");
+    goToLogin();
+    return;
+  }
+
   const detail = $("detailModal");
   const container = $("detailContent");
   const bp = state.blueprintCache.find((item) => item.id === id);
@@ -158,7 +161,7 @@ const showDetail = async (id) => {
         <h3>Steps</h3>
         <p class="muted">${sanitizeMultiline(bp.steps).replace(/\n/g, "<br />")}</p>
       </div>
-      ${bp.videoUrl ? `<div><h3>Video</h3><a class="pill ghost" href="${bp.videoUrl}" target="_blank" rel="noreferrer">Watch Video</a></div>` : ""}
+      ${bp.video_url ? `<div><h3>Video</h3><a class="pill ghost" href="${bp.video_url}" target="_blank" rel="noreferrer">Watch Video</a></div>` : ""}
     </div>
   `;
 
@@ -166,10 +169,16 @@ const showDetail = async (id) => {
   detail.setAttribute("aria-hidden", "false");
 
   const statusEl = container.querySelector("[data-rating-status]");
-  const userId = getUserId();
-  const ratingRef = doc(db, "ratings", `${id}_${userId}`);
-  const existing = await getDoc(ratingRef);
-  if (existing.exists()) {
+  const userId = state.user?.id;
+  if (!userId) return;
+  const { data: existing } = await supabase
+    .from("ratings")
+    .select("id")
+    .eq("blueprint_id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existing) {
     statusEl.textContent = "You already rated this blueprint.";
     container.querySelectorAll("[data-rate-value]").forEach((btn) => (btn.disabled = true));
   }
@@ -202,37 +211,58 @@ const closeMenu = () => {
 };
 
 const submitRating = async (id, value) => {
-  const userId = getUserId();
-  const ratingRef = doc(db, "ratings", `${id}_${userId}`);
+  const userId = state.user?.id;
+  if (!userId) return;
 
-  try {
-    await runTransaction(db, async (tx) => {
-      const ratingSnap = await tx.get(ratingRef);
-      if (ratingSnap.exists()) throw new Error("already");
-      const bpRef = doc(db, "blueprints", id);
-      const bpSnap = await tx.get(bpRef);
-      if (!bpSnap.exists()) throw new Error("missing");
-      const data = bpSnap.data();
-      const sum = (data.ratingSum || 0) + value;
-      const count = (data.ratingCount || 0) + 1;
-      tx.update(bpRef, { ratingSum: sum, ratingCount: count });
-      tx.set(ratingRef, { blueprintId: id, userId, value, createdAt: serverTimestamp() });
-    });
+  const { data: existing } = await supabase
+    .from("ratings")
+    .select("id")
+    .eq("blueprint_id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
 
-    showToast("Thanks for rating!");
-    const statusEl = document.querySelector("[data-rating-status]");
-    if (statusEl) statusEl.textContent = "Rating saved. Thanks!";
-    document.querySelectorAll("[data-rate-value]").forEach((btn) => (btn.disabled = true));
-  } catch (err) {
-    showToast(err.message === "already" ? "You have already rated this blueprint." : "Rating failed. Please try again.");
+  if (existing) {
+    showToast("You have already rated this blueprint.");
+    return;
   }
+
+  const { data: bp } = await supabase
+    .from("blueprints")
+    .select("rating_sum,rating_count")
+    .eq("id", id)
+    .maybeSingle();
+
+  await supabase.from("ratings").insert({
+    blueprint_id: id,
+    user_id: userId,
+    value
+  });
+
+  await supabase
+    .from("blueprints")
+    .update({
+      rating_sum: (bp?.rating_sum || 0) + value,
+      rating_count: (bp?.rating_count || 0) + 1
+    })
+    .eq("id", id);
+
+  showToast("Thanks for rating!");
+  const statusEl = document.querySelector("[data-rating-status]");
+  if (statusEl) statusEl.textContent = "Rating saved. Thanks!";
+  document.querySelectorAll("[data-rate-value]").forEach((btn) => (btn.disabled = true));
+  await fetchBlueprints();
 };
 
 const bindEvents = () => {
   $("getStartedBtn")?.addEventListener("click", () => {
     state.filter = "all";
     renderBlueprints();
-    document.getElementById("blueprints")?.scrollIntoView({ behavior: "smooth" });
+    const section = document.getElementById("blueprints");
+    section?.scrollIntoView({ behavior: "smooth" });
+    if (section) {
+      section.classList.add("flash");
+      setTimeout(() => section.classList.remove("flash"), 900);
+    }
   });
 
   $("menuBtn")?.addEventListener("click", openMenu);
@@ -253,6 +283,17 @@ const bindEvents = () => {
   $("bestRatedBtn")?.addEventListener("click", () => {
     state.filter = "best";
     renderBlueprints();
+  });
+
+  $("bestRatedFaqBtn")?.addEventListener("click", () => {
+    state.filter = "best";
+    renderBlueprints();
+    const section = document.getElementById("blueprints");
+    section?.scrollIntoView({ behavior: "smooth" });
+    if (section) {
+      section.classList.add("flash");
+      setTimeout(() => section.classList.remove("flash"), 900);
+    }
   });
 
   $("closeDetailBtn")?.addEventListener("click", closeDetail);
@@ -282,15 +323,29 @@ const bindEvents = () => {
     }
   });
 
-  const accordion = document.querySelector(".accordion");
-  const panel = document.querySelector(".panel");
-  accordion?.addEventListener("click", () => {
-    const open = panel?.classList.toggle("open");
-    accordion.setAttribute("aria-expanded", String(open));
-    panel?.setAttribute("aria-hidden", String(!open));
+  document.querySelectorAll(".accordion").forEach((accordion) => {
+    accordion.addEventListener("click", () => {
+      const panel = accordion.nextElementSibling;
+      if (!(panel instanceof HTMLElement)) return;
+      const isOpen = panel.classList.toggle("open");
+      if (isOpen) {
+        panel.style.height = `${panel.scrollHeight}px`;
+        const onEnd = () => {
+          panel.style.height = "auto";
+          panel.removeEventListener("transitionend", onEnd);
+        };
+        panel.addEventListener("transitionend", onEnd);
+      } else {
+        panel.style.height = `${panel.scrollHeight}px`;
+        requestAnimationFrame(() => {
+          panel.style.height = "0px";
+        });
+      }
+      accordion.setAttribute("aria-expanded", String(isOpen));
+      panel.setAttribute("aria-hidden", String(!isOpen));
+    });
   });
 
-  // Secret key sequence to open Dev Options without a visible button.
   const secret = "boredlabsdev";
   let buffer = "";
   document.addEventListener("keydown", (event) => {
@@ -304,29 +359,32 @@ const bindEvents = () => {
   });
 };
 
-const listenFeatured = async () => {
-  const settingsRef = doc(db, "settings", "site");
-  const settingsSnap = await getDoc(settingsRef);
-  if (settingsSnap.exists()) {
-    state.featuredId = settingsSnap.data().featuredId || null;
-  }
+const fetchFeatured = async () => {
+  const { data } = await supabase.from("settings").select("featured_id").eq("id", "site").maybeSingle();
+  state.featuredId = data?.featured_id || null;
   renderFeatured();
 };
 
-const listenBlueprints = () => {
-  const blueprintQuery = query(collection(db, "blueprints"), orderBy("createdAt", "desc"));
-  onSnapshot(blueprintQuery, (snapshot) => {
-    state.blueprintCache = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    }));
-    renderBlueprints();
-    renderFeatured();
-  });
+const fetchBlueprints = async () => {
+  const { data } = await supabase.from("blueprints").select("*").order("created_at", { ascending: false });
+  state.blueprintCache = data || [];
+  renderBlueprints();
+  renderFeatured();
 };
 
-window.addEventListener("DOMContentLoaded", () => {
-  listenBlueprints();
-  listenFeatured();
+window.addEventListener("DOMContentLoaded", async () => {
+  if (!isSupabaseConfigured) {
+    showToast("Supabase is not configured. Update supabase.js.");
+    return;
+  }
+
+  const { data } = await supabase.auth.getSession();
+  state.user = data?.session?.user || null;
+  supabase.auth.onAuthStateChange((_event, session) => {
+    state.user = session?.user || null;
+  });
+
+  await fetchBlueprints();
+  await fetchFeatured();
   bindEvents();
 });
