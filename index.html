@@ -11,6 +11,8 @@
     <div class="bg-orb orb-2"></div>
     <div class="grain"></div>
     <div class="lbp-patch" aria-hidden="true"></div>
+    <div class="floating-sticker sticker-star" aria-hidden="true"></div>
+    <div class="floating-sticker sticker-button" aria-hidden="true"></div>
 
     <header class="topbar">
       <div class="brand">
@@ -40,26 +42,54 @@
     </header>
 
     <main>
-      <section class="hero" id="hero">
+      <section class="hero stitched-stage" id="hero">
         <div class="hero-copy">
-          <p class="kicker">Blueprints that feel like the App Store for hobbies.</p>
-          <h2>Pick a blueprint, gather materials, and build a new skill today.</h2>
+          <p class="kicker">A cozy cardboard cosmos for makers, tinkerers, and curious brains.</p>
+          <h2>Pick a blueprint, gather your crafty bits, and stitch together a brand-new skill today.</h2>
           <p class="sub">
-            Browse curated hobbies with ratings, difficulty, and cost insights. Request new blueprints and watch them land live.
+            Browse curated hobbies with ratings, difficulty, and cost insights inside a playful DIY world full of patchwork textures, tactile details, and handmade energy.
           </p>
+          <div class="hero-tags" aria-label="Creative style tags">
+            <span>Stitched UI</span>
+            <span>DIY Energy</span>
+            <span>Crafted Blueprints</span>
+          </div>
           <div class="hero-actions">
             <button id="getStartedBtn" class="pill primary" type="button">Get Started</button>
             <a class="pill" href="request.html">Request a Blueprint</a>
             <a id="loginHeroLink" class="pill ghost" href="auth.html">Log In / Sign Up</a>
           </div>
         </div>
-        <div class="hero-card">
+        <div class="hero-card stitched-card">
+          <div class="cardboard-badge">Pop-It Craft Pick</div>
           <div class="hero-card-top">
             <h3>Featured Blueprint</h3>
             <p id="featuredTitle">Loading...</p>
           </div>
           <div id="featuredMeta" class="hero-metrics"></div>
+          <div class="hero-card-footer">
+            <span>Buttons, burlap, and bold ideas.</span>
+            <span>Make something delightfully hands-on.</span>
+          </div>
         </div>
+      </section>
+
+      <section class="workshop-strip" aria-label="Crafted homepage highlights">
+        <article class="workshop-tile">
+          <span class="tile-icon">✂️</span>
+          <h3>Cut + Create</h3>
+          <p class="muted">Projects feel like handmade kits with clear steps and playful presentation.</p>
+        </article>
+        <article class="workshop-tile">
+          <span class="tile-icon">🧵</span>
+          <h3>Stitched Details</h3>
+          <p class="muted">Soft patchwork borders, fabric textures, and scrapbook charm bring the interface to life.</p>
+        </article>
+        <article class="workshop-tile">
+          <span class="tile-icon">📦</span>
+          <h3>DIY Blueprint Crates</h3>
+          <p class="muted">Find projects that look ready to be pulled from a cardboard workshop shelf.</p>
+        </article>
       </section>
 
       <section class="blueprints" id="blueprints">
