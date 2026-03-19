@@ -1,19 +1,24 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 :root {
-  --bg: #0b0f1a;
-  --card: rgba(20, 25, 40, 0.9);
-  --glass: rgba(18, 24, 38, 0.82);
-  --text: #f5f7ff;
-  --muted: #a7b0c5;
-  --accent: #2b80ff;
-  --accent-2: #5bd2ff;
-  --green: #20d48b;
-  --red: #ff5a5f;
-  --shadow: 0 20px 60px rgba(4, 10, 24, 0.45);
-  --stitch: rgba(255, 255, 255, 0.16);
-  --paper: rgba(255, 255, 255, 0.08);
-  --craft-highlight: rgba(255, 255, 255, 0.2);
+  --bg: #5a3a25;
+  --card: rgba(103, 68, 44, 0.9);
+  --glass: rgba(72, 46, 29, 0.84);
+  --text: #fff9f2;
+  --muted: #e8d6c2;
+  --accent: #ff7f50;
+  --accent-2: #ffd15b;
+  --green: #53c089;
+  --red: #ff6b6b;
+  --shadow: 0 22px 55px rgba(43, 23, 9, 0.35);
+  --stitch: rgba(255, 247, 235, 0.3);
+  --paper: rgba(255, 245, 232, 0.1);
+  --craft-highlight: rgba(255, 255, 255, 0.24);
+  --fabric-1: #7a5234;
+  --fabric-2: #99653f;
+  --fabric-3: #d98952;
+  --felt: #89d0c8;
+  --thread: #fff0dc;
 }
 
 * {
@@ -26,12 +31,12 @@ body {
   font-family: "Manrope", "Segoe UI", sans-serif;
   background-color: var(--bg);
   background-image:
-    radial-gradient(circle at 12% 8%, rgba(91, 210, 255, 0.18), transparent 45%),
-    radial-gradient(circle at 82% 6%, rgba(255, 122, 89, 0.18), transparent 40%),
-    radial-gradient(circle at 86% 68%, rgba(255, 208, 84, 0.22), transparent 45%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 9px),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 9px);
-  background-blend-mode: screen, screen, screen, normal, normal;
+    radial-gradient(circle at 14% 10%, rgba(137, 208, 200, 0.18), transparent 38%),
+    radial-gradient(circle at 88% 12%, rgba(255, 127, 80, 0.2), transparent 36%),
+    radial-gradient(circle at 82% 72%, rgba(255, 209, 91, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(48, 29, 17, 0.35), rgba(112, 74, 46, 0.22)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 3px, transparent 3px 18px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.035) 0 1px, transparent 1px 22px);
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
@@ -99,27 +104,30 @@ body::before {
   position: fixed;
   inset: 0;
   background-image:
-    radial-gradient(circle at 65% 25%, rgba(255, 71, 135, 0.28), transparent 40%),
-    radial-gradient(circle at 78% 40%, rgba(120, 240, 255, 0.24), transparent 42%),
-    radial-gradient(circle at 88% 55%, rgba(255, 208, 84, 0.22), transparent 40%),
-    radial-gradient(circle at 70% 72%, rgba(118, 255, 195, 0.2), transparent 38%);
-  opacity: 0.55;
+    radial-gradient(circle at 20% 22%, rgba(255, 240, 220, 0.12), transparent 34%),
+    radial-gradient(circle at 76% 34%, rgba(137, 208, 200, 0.2), transparent 36%),
+    radial-gradient(circle at 88% 56%, rgba(255, 209, 91, 0.16), transparent 32%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.03), transparent 46%);
+  opacity: 0.8;
   pointer-events: none;
   z-index: -3;
-  clip-path: polygon(48% 0, 100% 0, 100% 100%, 42% 100%);
 }
 
 body::after {
   content: "";
   position: fixed;
-  width: 520px;
-  height: 520px;
-  right: -220px;
-  top: 90px;
-  border-radius: 50%;
-  border: 2px dashed rgba(255, 255, 255, 0.32);
-  transform: rotate(-8deg);
-  opacity: 0.45;
+  width: 420px;
+  height: 420px;
+  right: -120px;
+  top: 120px;
+  border-radius: 48% 52% 62% 38%;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.22) 0 10px, transparent 11px),
+    radial-gradient(circle at 65% 60%, rgba(255, 255, 255, 0.18) 0 8px, transparent 9px),
+    linear-gradient(145deg, rgba(255, 209, 91, 0.2), rgba(255, 127, 80, 0.16));
+  border: 2px dashed rgba(255, 240, 220, 0.28);
+  transform: rotate(-10deg);
+  opacity: 0.7;
   pointer-events: none;
   z-index: -2;
 }
@@ -165,6 +173,50 @@ body::after {
   box-shadow: 0 10px 22px rgba(4, 10, 24, 0.3);
 }
 
+.floating-sticker {
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.78;
+  filter: drop-shadow(0 12px 24px rgba(43, 23, 9, 0.22));
+}
+
+.sticker-star {
+  width: 84px;
+  height: 84px;
+  right: 12%;
+  top: 22%;
+  background: linear-gradient(135deg, #ffd86b, #ff9e57);
+  clip-path: polygon(50% 0%, 62% 34%, 100% 38%, 72% 60%, 82% 100%, 50% 77%, 18% 100%, 28% 60%, 0% 38%, 38% 34%);
+  transform: rotate(15deg);
+}
+
+.sticker-button {
+  width: 110px;
+  height: 110px;
+  left: 10%;
+  bottom: 16%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 249, 242, 0.95) 0 6px, transparent 7px),
+    radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.2), transparent 18px),
+    linear-gradient(135deg, #8bd7cf, #5caea4);
+  border: 10px solid rgba(255, 249, 242, 0.75);
+}
+
+.sticker-button::before,
+.sticker-button::after {
+  content: "";
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  border: 2px dashed rgba(122, 82, 52, 0.58);
+}
+
+.sticker-button::after {
+  inset: 42px;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -174,7 +226,7 @@ body::after {
 }
 
 .topbar.solid {
-  background: rgba(10, 14, 24, 0.9);
+  background: rgba(77, 49, 32, 0.9);
   position: sticky;
   top: 0;
   z-index: 3;
@@ -231,16 +283,16 @@ body::after {
 .hero::after {
   content: "";
   position: absolute;
-  right: -120px;
-  top: -40px;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
+  right: -80px;
+  top: -20px;
+  width: 340px;
+  height: 340px;
+  border-radius: 42% 58% 45% 55%;
   background-image:
-    radial-gradient(circle at 30% 30%, rgba(91, 210, 255, 0.85), transparent 45%),
-    radial-gradient(circle at 70% 20%, rgba(255, 208, 84, 0.6), transparent 38%),
-    radial-gradient(circle at 60% 70%, rgba(255, 122, 89, 0.6), transparent 40%);
-  opacity: 0.5;
+    radial-gradient(circle at 30% 30%, rgba(137, 208, 200, 0.78), transparent 42%),
+    radial-gradient(circle at 68% 28%, rgba(255, 209, 91, 0.62), transparent 34%),
+    radial-gradient(circle at 58% 68%, rgba(255, 127, 80, 0.52), transparent 38%);
+  opacity: 0.78;
   z-index: -1;
   pointer-events: none;
 }
@@ -249,7 +301,8 @@ body::after {
   font-size: clamp(1.8rem, 2vw + 1.4rem, 3rem);
   margin-bottom: 12px;
   font-family: "Space Grotesk", "Manrope", sans-serif;
-  text-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  text-shadow: 0 10px 24px rgba(73, 36, 13, 0.28);
+  max-width: 14ch;
 }
 
 .sub,
@@ -270,15 +323,34 @@ body::after {
   gap: 12px;
 }
 
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.hero-tags span {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 248, 239, 0.14);
+  border: 1px dashed rgba(255, 240, 220, 0.38);
+  color: var(--thread);
+  font-size: 0.84rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
 .hero-card {
-  background: linear-gradient(160deg, rgba(32, 38, 56, 0.95), rgba(14, 18, 32, 0.95));
+  background:
+    linear-gradient(160deg, rgba(129, 84, 53, 0.95), rgba(86, 55, 34, 0.98)),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 10px, transparent 10px 20px);
   border-radius: 24px;
-  padding: 24px;
+  padding: 28px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
   animation: floatIn 1.2s ease;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 244, 227, 0.12);
 }
 
 .hero-card-top {
@@ -297,7 +369,7 @@ body::after {
   border: none;
   border-radius: 999px;
   padding: 12px 22px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 249, 242, 0.12);
   color: var(--text);
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease;
@@ -345,11 +417,12 @@ body::after {
 
 .primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff;
+  color: #4b250d;
+  font-weight: 700;
 }
 
 .ghost {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 248, 239, 0.08);
 }
 
 .icon-btn {
@@ -357,7 +430,7 @@ body::after {
   height: 36px;
   border-radius: 14px;
   border: none;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 249, 242, 0.1);
   color: var(--text);
   cursor: pointer;
   display: flex;
@@ -434,7 +507,9 @@ body::after {
 }
 
 .card {
-  background: linear-gradient(160deg, rgba(32, 38, 56, 0.95), rgba(14, 18, 32, 0.95));
+  background:
+    linear-gradient(160deg, rgba(124, 80, 50, 0.95), rgba(86, 54, 34, 0.96)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.025) 0 12px, transparent 12px 24px);
   border-radius: 20px;
   padding: 18px;
   display: flex;
@@ -457,6 +532,8 @@ body::after {
   border-radius: 14px;
   height: 150px;
   object-fit: cover;
+  border: 3px solid rgba(255, 240, 220, 0.24);
+  box-shadow: inset 0 0 0 2px rgba(122, 82, 52, 0.25);
 }
 
 .card .title {
@@ -695,7 +772,7 @@ textarea {
 }
 
 .modal-content {
-  background: linear-gradient(160deg, rgba(32, 38, 56, 0.98), rgba(14, 18, 32, 0.98));
+  background: linear-gradient(160deg, rgba(129, 84, 53, 0.98), rgba(86, 55, 34, 0.98));
   border-radius: 24px;
   padding: 28px;
   width: min(900px, 92vw);
@@ -784,7 +861,7 @@ textarea {
 }
 
 .request-card {
-  background: linear-gradient(160deg, rgba(32, 38, 56, 0.95), rgba(14, 18, 32, 0.95));
+  background: linear-gradient(160deg, rgba(129, 84, 53, 0.95), rgba(86, 55, 34, 0.96));
   border-radius: 24px;
   padding: 26px;
   box-shadow: var(--shadow);
@@ -820,7 +897,7 @@ textarea {
   grid-template-columns: 140px 1fr auto;
   gap: 18px;
   align-items: center;
-  background: linear-gradient(160deg, rgba(32, 38, 56, 0.95), rgba(14, 18, 32, 0.95));
+  background: linear-gradient(160deg, rgba(124, 80, 50, 0.95), rgba(86, 54, 34, 0.96));
   padding: 16px;
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -855,7 +932,7 @@ textarea {
 }
 
 .accordion {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 249, 242, 0.1);
   border: none;
   color: var(--text);
   padding: 16px;
@@ -868,7 +945,7 @@ textarea {
   height: 0;
   overflow: hidden;
   transition: height 0.3s ease, padding 0.3s ease;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 249, 242, 0.06);
   border-radius: 14px;
   padding: 0 16px;
   position: relative;
@@ -906,6 +983,99 @@ textarea {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.stitched-stage::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 32px;
+  border: 2px dashed rgba(255, 240, 220, 0.24);
+  pointer-events: none;
+}
+
+.stitched-card::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 18px;
+  border: 2px dashed rgba(255, 240, 220, 0.26);
+  pointer-events: none;
+}
+
+.cardboard-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  border-radius: 12px 14px 12px 18px;
+  background: linear-gradient(135deg, rgba(255, 214, 154, 0.9), rgba(226, 173, 106, 0.88));
+  color: #6b3c17;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  box-shadow: 0 10px 22px rgba(73, 36, 13, 0.2);
+}
+
+.hero-card-footer {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+  color: var(--thread);
+  font-size: 0.9rem;
+}
+
+.workshop-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 0 6vw 42px;
+}
+
+.workshop-tile {
+  position: relative;
+  padding: 22px;
+  border-radius: 26px;
+  background:
+    linear-gradient(160deg, rgba(121, 78, 49, 0.92), rgba(161, 106, 69, 0.88)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 16px, transparent 16px 32px);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 241, 223, 0.12);
+}
+
+.workshop-tile::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 20px;
+  border: 2px dashed rgba(255, 240, 220, 0.22);
+  pointer-events: none;
+}
+
+.tile-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 241, 223, 0.22), rgba(255, 209, 91, 0.22));
+  font-size: 1.4rem;
+}
+
+.section-head h2::after,
+.faq h2::after,
+.request-hero h2::after {
+  background: rgba(255, 209, 91, 0.35);
+}
+
+.topbar,
+.hero,
+.workshop-strip,
+.blueprints,
+.faq,
+.footer {
+  position: relative;
+}
 .footer {
   padding: 26px 6vw 40px;
   color: var(--muted);
@@ -976,6 +1146,12 @@ textarea {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .floating-sticker,
+  .lbp-patch,
+  body::after {
+    opacity: 0.35;
   }
 
   .section-head {
